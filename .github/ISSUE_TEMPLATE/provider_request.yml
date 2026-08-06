@@ -1,0 +1,37 @@
+name: New provider request
+description: Request a new billing-source adapter
+labels: [enhancement, provider]
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      description: The vendor whose cost/usage you want exported.
+      placeholder: OpenAI
+    validations:
+      required: true
+  - type: input
+    id: api-docs
+    attributes:
+      label: Billing/usage API docs
+      description: Link to the provider's cost or usage API reference.
+    validations:
+      required: true
+  - type: textarea
+    id: auth
+    attributes:
+      label: Authentication
+      description: How does the API authenticate (service token, API key, OAuth)?
+    validations:
+      required: true
+  - type: textarea
+    id: granularity
+    attributes:
+      label: Cost granularity and currency
+      description: Monthly/daily/per-request? Single or multiple currencies?
+  - type: checkboxes
+    id: real-cost
+    attributes:
+      label: Real billed cost
+      options:
+        - label: The API exposes real billed/invoiced cost, not just estimates.
