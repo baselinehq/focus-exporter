@@ -55,7 +55,7 @@ func run(reg *integrations.Registry, args []string, env func(string) string, std
 	}
 
 	fs := flag.NewFlagSet("focus-exporter", flag.ContinueOnError)
-	fs.SetOutput(stdout)
+	fs.SetOutput(os.Stderr)
 	var providers stringSlice
 	fs.Var(&providers, "provider", "provider to export (repeatable)")
 	start := fs.String("start", "", "window start (RFC3339 or 2006-01-02)")
@@ -151,6 +151,9 @@ func resolveWindow(start, end, month string) (time.Time, time.Time, error) {
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("invalid --end: %w", err)
 	}
+	if !e.After(s) {
+		return time.Time{}, time.Time{}, fmt.Errorf("--end must be after --start")
+	}
 	return s, e, nil
 }
 
@@ -182,9 +185,13 @@ func newHTTPGet(timeout time.Duration) integrations.HTTPGet {
 				log.Printf("closing response body for %s: %v", rawURL, cerr)
 			}
 		}()
-		body, err := io.ReadAll(resp.Body)
+		const maxBody = 64 << 20
+		body, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
 		if err != nil {
 			return nil, err
+		}
+		if len(body) > maxBody {
+			return nil, fmt.Errorf("GET %s: response exceeds %d bytes", rawURL, maxBody)
 		}
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return nil, fmt.Errorf("GET %s: status %d: %s", rawURL, resp.StatusCode, snippet(body))

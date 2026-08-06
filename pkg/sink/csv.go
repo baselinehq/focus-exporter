@@ -1,9 +1,9 @@
 package sink
 
 import (
+	"bytes"
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -45,7 +45,9 @@ func (s *csvSink) Write(recs []focus.Record) error {
 			return err
 		}
 		var m map[string]any
-		if err := json.Unmarshal(raw, &m); err != nil {
+		dec := json.NewDecoder(bytes.NewReader(raw))
+		dec.UseNumber()
+		if err := dec.Decode(&m); err != nil {
 			return err
 		}
 		rows[i] = m
@@ -80,11 +82,23 @@ func (s *csvSink) Write(recs []focus.Record) error {
 }
 
 func cellValue(v any) string {
-	if v == nil {
+	switch t := v.(type) {
+	case nil:
 		return ""
+	case string:
+		return t
+	case json.Number:
+		return t.String()
+	case bool:
+		if t {
+			return "true"
+		}
+		return "false"
+	default:
+		b, err := json.Marshal(v)
+		if err != nil {
+			return ""
+		}
+		return string(b)
 	}
-	if s, ok := v.(string); ok {
-		return s
-	}
-	return fmt.Sprintf("%v", v)
 }

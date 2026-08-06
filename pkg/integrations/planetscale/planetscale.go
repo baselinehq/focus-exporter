@@ -111,11 +111,17 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 	for _, inv := range invoices {
 		periodStart, err := parsePlanetScaleDate(inv.BillingPeriodStart)
 		if err != nil {
-			return nil, fmt.Errorf("planetscale: invoice %s billing_period_start: %w", inv.ID, err)
+			log.Printf("planetscale: skipping invoice %s: invalid billing_period_start: %v", inv.ID, err)
+			continue
 		}
 		periodEnd, err := parsePlanetScaleDate(inv.BillingPeriodEnd)
 		if err != nil {
-			return nil, fmt.Errorf("planetscale: invoice %s billing_period_end: %w", inv.ID, err)
+			log.Printf("planetscale: skipping invoice %s: invalid billing_period_end: %v", inv.ID, err)
+			continue
+		}
+		if !periodStart.Before(periodEnd) {
+			log.Printf("planetscale: skipping invoice %s: invalid billing period", inv.ID)
+			continue
 		}
 		if !overlaps(periodStart, periodEnd, start, end) {
 			continue

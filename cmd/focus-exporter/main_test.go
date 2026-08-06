@@ -106,6 +106,16 @@ func TestRun(t *testing.T) {
 			args:    []string{"--month", "2026-07"},
 			wantErr: "provider is required",
 		},
+		{
+			name:    "equal window bounds",
+			args:    []string{"--provider", "good", "--start", "2026-07-01", "--end", "2026-07-01"},
+			wantErr: "--end must be after --start",
+		},
+		{
+			name:    "reversed window bounds",
+			args:    []string{"--provider", "good", "--start", "2026-07-10", "--end", "2026-07-01"},
+			wantErr: "--end must be after --start",
+		},
 	}
 
 	for _, tc := range cases {

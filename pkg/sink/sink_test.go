@@ -83,6 +83,48 @@ func TestJSONSinkInlinesExtensions(t *testing.T) {
 	}
 }
 
+func TestCSVSinkPreservesNumbersAndStructs(t *testing.T) {
+	t0 := time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC)
+	recs := []focus.Record{{
+		BillingCurrency:   "USD",
+		ChargeCategory:    "Usage",
+		ChargePeriodStart: t0,
+		ChargePeriodEnd:   t0.Add(24 * time.Hour),
+		Provider:          "PlanetScale",
+		Extensions: map[string]any{
+			"x_BigInt": int64(9007199254740993),
+			"x_Tags":   map[string]any{"env": "prod"},
+		},
+	}}
+
+	var buf bytes.Buffer
+	if err := sink.NewCSVSink(&buf).Write(recs); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	rows, err := csv.NewReader(&buf).ReadAll()
+	if err != nil {
+		t.Fatalf("parse csv: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("want header + 1 row, got %d", len(rows))
+	}
+	idx := map[string]int{}
+	for i, h := range rows[0] {
+		idx[h] = i
+	}
+	if got := rows[1][idx["x_BigInt"]]; got != "9007199254740993" {
+		t.Errorf("big integer lost precision: got %q", got)
+	}
+	tags := rows[1][idx["x_Tags"]]
+	var m map[string]string
+	if err := json.Unmarshal([]byte(tags), &m); err != nil {
+		t.Fatalf("map cell not valid JSON: %q: %v", tags, err)
+	}
+	if m["env"] != "prod" {
+		t.Errorf("map cell wrong: %q", tags)
+	}
+}
+
 func TestCSVSinkHeaderAndRows(t *testing.T) {
 	var buf bytes.Buffer
 	if err := sink.NewCSVSink(&buf).Write(sampleRecords()); err != nil {

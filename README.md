@@ -7,7 +7,9 @@ It is gateway-independent (no shared service, no database) and domain-agnostic:
 each provider is a small adapter behind one interface, so the same tool exports
 infrastructure cost and, later, AI model cost. The first shipped provider is
 **PlanetScale**, whose monthly invoices map cleanly onto native FOCUS columns
-(real `ResourceId`, `RegionName`, `SkuMeter`) with no vendor-specific extensions.
+(real `ResourceId`, `RegionName`, `SkuMeter`); the only vendor-specific
+extension is `x_InfraProvider` (the underlying cloud), everything else is
+native.
 
 ## Why FOCUS 1.2
 
@@ -142,7 +144,7 @@ resource/region/period fields, and model providers add token detail through the
 
 ## Layout
 
-```
+```text
 cmd/focus-exporter/          CLI
 pkg/focus/                   canonical FOCUS 1.2 Record (generated) + mapper
 pkg/model/                   UsageRecord (domain-agnostic)

@@ -1,6 +1,7 @@
 # PlanetScale testdata
 
-These fixtures are doc-shaped, not live-captured (no service token available in
-the build env). Field names mirror the PlanetScale API and the backend driver at
-`backend/internal/integrations/planetscale` (databaseItem, invoiceItem, lineItem,
-region slug/display_name/provider).
+These fixtures are hand-authored to match the documented PlanetScale billing
+API response shapes (invoices, invoice line-items, databases), not
+live-captured (no service token available in the build env). Field names mirror
+those responses: region slug/display_name/provider, invoice
+billing_period_start/end, line-item metric_name/subtotal/database_id.
