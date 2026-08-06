@@ -7,7 +7,7 @@ discussions, or pull requests.
 
 Report privately using GitHub's
 [private vulnerability reporting](https://github.com/baselinehq/focus-exporter/security/advisories/new),
-or email **security@baselinehq.cloud**.
+or email **support@costgraph.ai**.
 
 Include as much of the following as you can:
 
