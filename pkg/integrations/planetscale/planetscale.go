@@ -224,7 +224,7 @@ func skuPriceID(plan, metric string) string {
 }
 
 func overlaps(aStart, aEnd, bStart, bEnd time.Time) bool {
-	return !aStart.After(bEnd) && !bStart.After(aEnd)
+	return aStart.Before(bEnd) && bStart.Before(aEnd)
 }
 
 func parsePlanetScaleDate(value string) (time.Time, error) {

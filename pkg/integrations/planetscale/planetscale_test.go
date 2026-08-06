@@ -194,6 +194,41 @@ func TestFetch(t *testing.T) {
 	}
 }
 
+func TestFetchExcludesBoundaryInvoice(t *testing.T) {
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+
+	invoices := `{"data":[
+		{"id":"invoice_july","billing_period_start":"2026-07-01T00:00:00Z","billing_period_end":"2026-08-01T00:00:00Z"},
+		{"id":"invoice_august","billing_period_start":"2026-08-01T00:00:00Z","billing_period_end":"2026-09-01T00:00:00Z"}
+	]}`
+
+	get := func(ctx context.Context, u string, h map[string]string) ([]byte, error) {
+		switch {
+		case strings.Contains(u, "/databases"):
+			return fixture(t, "databases.json"), nil
+		case strings.Contains(u, "/invoices/invoice_august/line-items"):
+			return nil, fmt.Errorf("august invoice must not be fetched for a July window")
+		case strings.Contains(u, "/invoices/invoice_july/line-items"):
+			return fixture(t, "line_items.json"), nil
+		case strings.Contains(u, "/invoices"):
+			return []byte(invoices), nil
+		}
+		return nil, fmt.Errorf("unexpected url %q", u)
+	}
+
+	src := New(get, "my-org", "token-id", "token-secret")
+	recs, err := src.Fetch(context.Background(), start, end)
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	for _, r := range recs {
+		if r.PeriodStart != nil && !r.PeriodStart.Before(end) {
+			t.Fatalf("adjacent invoice leaked into window: PeriodStart %v", r.PeriodStart)
+		}
+	}
+}
+
 func TestAuthHeaders(t *testing.T) {
 	var seen map[string]string
 	get := func(ctx context.Context, u string, h map[string]string) ([]byte, error) {
