@@ -61,7 +61,12 @@ export never silently produces an empty file.
 
 ## Providers
 
+Per-provider setup (environment variables, credential scopes, API endpoints,
+FOCUS mapping) is documented under [docs/providers/](docs/providers/).
+
 ### PlanetScale
+
+Full setup: [docs/providers/planetscale.md](docs/providers/planetscale.md).
 
 Exports one FOCUS record per (invoice month, database, billing metric) from the
 PlanetScale billing API.
@@ -173,4 +178,4 @@ go test ./...
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
