@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "id": "database_main",
+      "name": "main-db",
+      "kind": "mysql",
+      "plan": "scaler_pro",
+      "region": {
+        "slug": "us-east",
+        "display_name": "US East (Northern Virginia)",
+        "provider": "aws"
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "metric_name": "reads",
+      "subtotal": 12.34,
+      "database_id": "database_main",
+      "database_name": "main-db"
+    },
+    {
+      "metric_name": "storage",
+      "subtotal": 5.50,
+      "database_id": "database_ghost",
+      "database_name": "ghost-db"
+    }
+  ]
+}
