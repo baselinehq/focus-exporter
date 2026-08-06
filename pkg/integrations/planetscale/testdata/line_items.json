@@ -2,7 +2,15 @@
   "data": [
     {
       "metric_name": "reads",
+      "description": "Row reads for branch 'main'",
       "subtotal": 12.34,
+      "database_id": "database_main",
+      "database_name": "main-db"
+    },
+    {
+      "metric_name": "reads",
+      "description": "Prorated reads discount for branch 'main'",
+      "subtotal": -4.10,
       "database_id": "database_main",
       "database_name": "main-db"
     },

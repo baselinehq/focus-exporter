@@ -106,7 +106,7 @@ Example output:
   "RegionName": "AWS us-east-1",
   "SkuId": "scaler_pro",
   "SkuMeter": "PS_10_AWS_ARM",
-  "ChargeDescription": "PS_10_AWS_ARM",
+  "ChargeDescription": "PS-10-AWS-ARM for branch 'main'",
   "SkuPriceId": "scaler_pro|PS_10_AWS_ARM",
   "x_InfraProvider": "AWS"
 }

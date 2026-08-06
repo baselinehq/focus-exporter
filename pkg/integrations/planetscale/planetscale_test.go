@@ -61,6 +61,15 @@ func recordByMeter(recs []model.UsageRecord, meter string) (model.UsageRecord, b
 	return model.UsageRecord{}, false
 }
 
+func recordByCost(recs []model.UsageRecord, cost string) (model.UsageRecord, bool) {
+	for _, r := range recs {
+		if r.Cost != nil && string(*r.Cost) == cost {
+			return r, true
+		}
+	}
+	return model.UsageRecord{}, false
+}
+
 func TestFetch(t *testing.T) {
 	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2026, 7, 31, 0, 0, 0, 0, time.UTC)
@@ -87,8 +96,8 @@ func TestFetch(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Fetch: %v", err)
 				}
-				if len(recs) != 2 {
-					t.Fatalf("want 2 records (january invoice excluded), got %d", len(recs))
+				if len(recs) != 3 {
+					t.Fatalf("want 3 records (january invoice excluded), got %d", len(recs))
 				}
 				reads, ok := recordByMeter(recs, "reads")
 				if !ok {
@@ -96,6 +105,25 @@ func TestFetch(t *testing.T) {
 				}
 				if reads.Cost == nil || *reads.Cost != "12.34" {
 					t.Fatalf("cost drift: %+v", reads.Cost)
+				}
+				if reads.ChargeCategory != "Usage" {
+					t.Fatalf("positive line should be Usage: %q", reads.ChargeCategory)
+				}
+				if reads.ChargeDescription != "Row reads for branch 'main'" {
+					t.Fatalf("charge description should come from description field: %q", reads.ChargeDescription)
+				}
+				credit, ok := recordByCost(recs, "-4.10")
+				if !ok {
+					t.Fatal("credit (negative) record missing")
+				}
+				if credit.ChargeCategory != "Credit" {
+					t.Fatalf("negative line should be Credit: %q", credit.ChargeCategory)
+				}
+				if credit.ChargeDescription != "Prorated reads discount for branch 'main'" {
+					t.Fatalf("credit description: %q", credit.ChargeDescription)
+				}
+				if credit.SkuMeter != "reads" {
+					t.Fatalf("credit SkuMeter should stay metric_name: %q", credit.SkuMeter)
 				}
 				if reads.Currency != "USD" {
 					t.Fatalf("currency: %q", reads.Currency)
@@ -153,8 +181,8 @@ func TestFetch(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Fetch: %v", err)
 				}
-				if len(recs) != pageSize+2 {
-					t.Fatalf("want %d records across two pages, got %d", pageSize+2, len(recs))
+				if len(recs) != pageSize+3 {
+					t.Fatalf("want %d records across two pages, got %d", pageSize+3, len(recs))
 				}
 				if _, ok := recordByMeter(recs, "reads"); !ok {
 					t.Fatal("second page items missing")
@@ -259,8 +287,8 @@ func TestFetchSkipsInvalidInvoicePeriods(t *testing.T) {
 	if err != nil {
 		t.Fatalf("invalid invoice periods must not be fatal: %v", err)
 	}
-	if len(recs) != 2 {
-		t.Fatalf("want 2 records from the valid july invoice, got %d", len(recs))
+	if len(recs) != 3 {
+		t.Fatalf("want 3 records from the valid july invoice, got %d", len(recs))
 	}
 	if _, ok := recordByMeter(recs, "reads"); !ok {
 		t.Fatal("valid invoice records dropped alongside invalid ones")

@@ -48,6 +48,7 @@ type lineItemListResponse struct {
 
 type lineItem struct {
 	MetricName   string      `json:"metric_name"`
+	Description  string      `json:"description"`
 	Subtotal     json.Number `json:"subtotal"`
 	DatabaseID   string      `json:"database_id"`
 	DatabaseName string      `json:"database_name"`
@@ -201,8 +202,8 @@ func toUsageRecord(li lineItem, db databaseItem, periodStart, periodEnd time.Tim
 		ServiceName:        "PlanetScale",
 		ServiceCategory:    "Databases",
 		ServiceSubcategory: "Managed Database",
-		ChargeCategory:     "Usage",
-		ChargeDescription:  li.MetricName,
+		ChargeCategory:     chargeCategory(li.Subtotal),
+		ChargeDescription:  chargeDescription(li),
 		PeriodStart:        &periodStart,
 		PeriodEnd:          &periodEnd,
 		Cost:               &cost,
@@ -220,6 +221,20 @@ func toUsageRecord(li lineItem, db databaseItem, periodStart, periodEnd time.Tim
 		rec.Extensions = map[string]any{"x_InfraProvider": db.Region.Provider}
 	}
 	return rec
+}
+
+func chargeDescription(li lineItem) string {
+	if li.Description != "" {
+		return li.Description
+	}
+	return li.MetricName
+}
+
+func chargeCategory(subtotal json.Number) string {
+	if f, err := subtotal.Float64(); err == nil && f < 0 {
+		return "Credit"
+	}
+	return "Usage"
 }
 
 func skuPriceID(plan, metric string) string {

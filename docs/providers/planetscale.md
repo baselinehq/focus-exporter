@@ -76,7 +76,8 @@ are fetched for line items.
 | `BillingCurrency` | `USD` |
 | `ChargePeriodStart` / `ChargePeriodEnd` | invoice `billing_period_start` / `billing_period_end` |
 | `BillingPeriodStart` / `BillingPeriodEnd` | same as charge period |
-| `ChargeCategory` | `Usage` |
+| `ChargeCategory` | `Usage`, or `Credit` when the line item has a negative `subtotal` (prorated discounts, refunds) |
+| `ChargeDescription` | line-item `description` (falls back to `metric_name` when absent) |
 | `ServiceName`, `Provider` | `PlanetScale` |
 | `ServiceCategory` | `Databases` |
 | `ServiceSubcategory` | `Managed Database` |
@@ -84,7 +85,7 @@ are fetched for line items.
 | `ResourceType` | `Database` |
 | `RegionId` / `RegionName` | database `region.slug` / `region.display_name` (via the databases join) |
 | `SkuId` | database `plan` |
-| `SkuMeter`, `ChargeDescription` | `metric_name` |
+| `SkuMeter` | `metric_name` |
 | `SkuPriceId` | `plan\|metric_name` (or `metric_name` alone when the database is not in the join) |
 | `x_InfraProvider` | database `region.provider` (`aws` / `gcp`) - the sole vendor-specific extension |
 
@@ -120,7 +121,7 @@ Representative record:
   "RegionName": "AWS us-east-1",
   "SkuId": "scaler_pro",
   "SkuMeter": "PS_10_AWS_ARM",
-  "ChargeDescription": "PS_10_AWS_ARM",
+  "ChargeDescription": "PS-10-AWS-ARM for branch 'main'",
   "SkuPriceId": "scaler_pro|PS_10_AWS_ARM",
   "x_InfraProvider": "AWS"
 }
@@ -132,8 +133,11 @@ Representative record:
   so `ChargePeriod` equals `BillingPeriod` (the calendar month). There is no
   finer charge granularity from this source.
 - **Currency is USD.** PlanetScale invoices are billed in USD.
-- **Credits and prorations** appear as their own line items and are surfaced
-  as-is, including negative `BilledCost`.
+- **Credits and prorations** appear as their own line items with a negative
+  `subtotal` (e.g. PlanetScale bills the full plan up front, then credits back
+  the unused portion when a branch is deleted mid-period). They are surfaced
+  as-is with negative `BilledCost` and `ChargeCategory = "Credit"`, and their
+  `ChargeDescription` carries the provider's own text ("Prorated ... discount").
 - **Unmatched databases** (a line item whose `database_id` is not in the
   databases list, e.g. a deleted database) are still emitted, with region and
   plan left empty rather than dropped.
