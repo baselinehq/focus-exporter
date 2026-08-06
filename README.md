@@ -1,5 +1,9 @@
 # focus-exporter
 
+[![CI](https://github.com/baselinehq/focus-exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/baselinehq/focus-exporter/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Go 1.26+](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)](go.mod)
+
 A standalone Go binary that pulls a provider's own cost/usage API and emits
 [FinOps FOCUS 1.2](https://focus.finops.org/) records as JSON or CSV.
 
@@ -176,6 +180,15 @@ go test ./...
 - A stable synthetic record id (`x_LineItemId`) so downstream ingestion can
   dedup without relying on field values, which FOCUS does not guarantee to be
   unique.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+development setup, the checks a change has to pass, and how to add a provider.
+Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Security issues: please follow [SECURITY.md](SECURITY.md) and do not open a
+public issue. Release notes live in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
