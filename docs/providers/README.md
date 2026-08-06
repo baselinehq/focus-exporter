@@ -1,7 +1,8 @@
 # Providers
 
 Each provider is a small adapter behind one interface (`integrations.Source`)
-that pulls that vendor's own cost/usage API and emits FOCUS 1.2 records. This
+that pulls that vendor's own cost/usage API and returns `[]model.UsageRecord`;
+`pkg/focus` maps those into FOCUS 1.2 records before the sinks write them. This
 directory documents, per provider, the credentials and configuration needed to
 run an export.
 
