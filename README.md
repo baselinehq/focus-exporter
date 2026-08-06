@@ -52,7 +52,8 @@ Flags:
 | `--format` | `json` or `csv` | `json` |
 | `-o`, `--out` | Output file | stdout |
 
-Provide either `--month` or `--start`/`--end`, not both.
+Provide either `--month` or `--start`/`--end` (not both). With no window flags
+at all, the exporter fetches the entire period the provider makes available.
 
 A provider that fails at fetch time is logged to stderr and skipped; the run
 still emits the records it could gather. A provider that cannot be built at all

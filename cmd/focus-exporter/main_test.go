@@ -49,6 +49,56 @@ func testRegistry() *integrations.Registry {
 	return reg
 }
 
+func TestResolveWindow(t *testing.T) {
+	cases := []struct {
+		name              string
+		start, end, month string
+		wantErr           string
+		check             func(t *testing.T, s, e time.Time)
+	}{
+		{
+			name: "no flags exports the full available period",
+			check: func(t *testing.T, s, e time.Time) {
+				if !s.IsZero() {
+					t.Fatalf("want zero start, got %v", s)
+				}
+				if e.Year() != 9999 {
+					t.Fatalf("want open end (year 9999), got %v", e)
+				}
+			},
+		},
+		{
+			name:  "explicit window",
+			start: "2026-07-01", end: "2026-08-01",
+			check: func(t *testing.T, s, e time.Time) {
+				if s != time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC) || e != time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC) {
+					t.Fatalf("window: %v %v", s, e)
+				}
+			},
+		},
+		{name: "reversed bounds", start: "2026-08-01", end: "2026-07-01", wantErr: "--end must be after --start"},
+		{name: "equal bounds", start: "2026-07-01", end: "2026-07-01", wantErr: "--end must be after --start"},
+		{name: "only start", start: "2026-07-01", wantErr: "or neither"},
+		{name: "only end", end: "2026-08-01", wantErr: "or neither"},
+		{name: "month with start", month: "2026-07", start: "2026-07-01", wantErr: "cannot be combined"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s, e, err := resolveWindow(tc.start, tc.end, tc.month)
+			if tc.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+					t.Fatalf("want error containing %q, got %v", tc.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			tc.check(t, s, e)
+		})
+	}
+}
+
 func TestRun(t *testing.T) {
 	env := func(string) string { return "" }
 	cases := []struct {

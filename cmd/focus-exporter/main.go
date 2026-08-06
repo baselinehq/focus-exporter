@@ -140,8 +140,11 @@ func resolveWindow(start, end, month string) (time.Time, time.Time, error) {
 		}
 		return m, m.AddDate(0, 1, 0), nil
 	}
+	if start == "" && end == "" {
+		return time.Time{}, time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC), nil
+	}
 	if start == "" || end == "" {
-		return time.Time{}, time.Time{}, fmt.Errorf("provide --month or both --start and --end")
+		return time.Time{}, time.Time{}, fmt.Errorf("provide both --start and --end, or neither (to export the full available period)")
 	}
 	s, err := parseDate(start)
 	if err != nil {
