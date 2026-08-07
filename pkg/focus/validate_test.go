@@ -17,6 +17,7 @@ func TestValidate(t *testing.T) {
 			BilledCost:        "1.23",
 			EffectiveCost:     "1.23",
 			ListCost:          "1.50",
+			ContractedCost:    "1.00",
 			ChargePeriodStart: start,
 			ChargePeriodEnd:   start.Add(time.Hour),
 		}
@@ -43,6 +44,13 @@ func TestValidate(t *testing.T) {
 		{"missing charge period start", func(r *Record) { r.ChargePeriodStart = time.Time{} }, true},
 		{"missing charge period end", func(r *Record) { r.ChargePeriodEnd = time.Time{} }, true},
 		{"end not after start", func(r *Record) { r.ChargePeriodEnd = r.ChargePeriodStart }, true},
+		{"invalid contracted cost rejected", func(r *Record) { r.ContractedCost = "abc" }, true},
+		{"empty contracted cost allowed", func(r *Record) { r.ContractedCost = "" }, false},
+		{"hex cost rejected", func(r *Record) { r.EffectiveCost = "0x1p2" }, true},
+		{"exponent cost rejected", func(r *Record) { r.EffectiveCost = "1e3" }, true},
+		{"leading plus cost rejected", func(r *Record) { r.EffectiveCost = "+1" }, true},
+		{"negative cost allowed", func(r *Record) { r.EffectiveCost = "-12.10" }, false},
+		{"unassigned currency rejected", func(r *Record) { r.BillingCurrency = "ZZZ" }, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

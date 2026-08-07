@@ -4,14 +4,38 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 )
 
 func isISO4217(code string) bool {
 	if len(code) != 3 {
 		return false
 	}
-	for _, c := range code {
-		if c < 'A' || c > 'Z' {
+	_, ok := validCurrencyCodes[code]
+	return ok
+}
+
+func isPlainDecimal(v string) bool {
+	if strings.ContainsAny(v, "xXeEpP+") {
+		return false
+	}
+	s := v
+	if strings.HasPrefix(s, "-") {
+		s = s[1:]
+	}
+	if s == "" {
+		return false
+	}
+	dots := 0
+	for _, c := range s {
+		if c == '.' {
+			dots++
+			if dots > 1 {
+				return false
+			}
+			continue
+		}
+		if c < '0' || c > '9' {
 			return false
 		}
 	}
@@ -21,6 +45,9 @@ func isISO4217(code string) bool {
 func finiteDecimal(name, v string) error {
 	if v == "" {
 		return fmt.Errorf("focus: %s is required", name)
+	}
+	if !isPlainDecimal(v) {
+		return fmt.Errorf("focus: %s %q is not a plain decimal", name, v)
 	}
 	f, err := strconv.ParseFloat(v, 64)
 	if err != nil {
@@ -53,6 +80,11 @@ func Validate(r Record) error {
 		{"ListCost", r.ListCost},
 	} {
 		if err := finiteDecimal(c.name, c.value); err != nil {
+			return err
+		}
+	}
+	if r.ContractedCost != "" {
+		if err := finiteDecimal("ContractedCost", r.ContractedCost); err != nil {
 			return err
 		}
 	}
