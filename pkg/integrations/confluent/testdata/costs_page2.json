@@ -1,0 +1,14 @@
+{
+  "api_version": "billing/v1",
+  "kind": "CostList",
+  "data": [
+    {
+      "api_version": "billing/v1", "kind": "Cost", "id": "dlz-2",
+      "start_date": "2026-07-01", "end_date": "2026-07-02", "granularity": "DAILY",
+      "product": "SUPPORT_CLOUD_BUSINESS", "line_type": "PROMO_CREDIT",
+      "price": 0, "unit": "USD", "quantity": 1,
+      "original_amount": -10.0, "discount_amount": 0, "amount": -10.0
+    }
+  ],
+  "metadata": {"next": null, "total_size": 2}
+}

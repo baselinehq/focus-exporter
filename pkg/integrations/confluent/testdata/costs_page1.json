@@ -1,0 +1,15 @@
+{
+  "api_version": "billing/v1",
+  "kind": "CostList",
+  "data": [
+    {
+      "api_version": "billing/v1", "kind": "Cost", "id": "dlz-1",
+      "start_date": "2026-07-01", "end_date": "2026-07-02", "granularity": "DAILY",
+      "network_access_type": "INTERNET", "product": "KAFKA", "line_type": "KAFKA_STORAGE",
+      "price": 0.00013, "unit": "GB-hour", "quantity": 1000,
+      "original_amount": 0.20, "discount_amount": 0.05, "amount": 0.15,
+      "resource": {"id": "lkc-123", "display_name": "prod-kafka", "environment": {"id": "env-9"}}
+    }
+  ],
+  "metadata": {"next": "https://api.confluent.cloud/billing/v1/costs?page_token=TOK2", "total_size": 2}
+}

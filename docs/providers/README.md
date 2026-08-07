@@ -13,6 +13,7 @@ run an export.
 | PlanetScale | Managed database (infra cost) | Service token | [planetscale.md](planetscale.md) |
 | Anthropic | AI model cost | Admin API key | [anthropic.md](anthropic.md) |
 | OpenAI | AI model cost | Admin API key | [openai.md](openai.md) |
+| Confluent Cloud | Event streaming (Kafka) | Cloud API key | [confluent.md](confluent.md) |
 
 ## Documenting a new provider
 
