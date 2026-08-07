@@ -12,6 +12,7 @@ Provider name (for `--provider`): `anthropic`
 | Variable | Required | Description |
 | --- | --- | --- |
 | `ANTHROPIC_ADMIN_KEY` | yes | An Admin API key (`sk-ant-admin...`). Only an organization admin can create one. Treat it as a credential; never commit it. |
+| `ANTHROPIC_ORG_ID` | no | Sets `BillingAccountId` on every record. The reports carry no org identifier, so provide it here if you want the column populated. |
 
 The key is sent as the `x-api-key` header, with `anthropic-version: 2023-06-01`.
 
@@ -62,6 +63,14 @@ the two cache-creation token types are summed into one `cache_creation` bucket:
 | `ResourceType` | `Model` |
 | `SkuMeter` | token bucket |
 | `SkuPriceId` | `model\|bucket` |
+| `SkuPriceDetails` | JSON of `token_type` / `service_tier` / `context_window` / `inference_geo` |
+| `ContractedCost` | same as `EffectiveCost` (no separate negotiated rate) |
+| `Publisher`, `InvoiceIssuer` | `Anthropic` |
+| `ChargeFrequency` | `Usage-Based` |
+| `PricingCategory`, `PricingCurrency` | `Standard`, `USD` |
+| `PricingQuantity` / `PricingUnit` | tokens / 1e6, `1M tokens` |
+| `ListUnitPrice` / `ContractedUnitPrice` | cost / (tokens / 1e6), the per-MTok rate |
+| `BillingAccountId` | `ANTHROPIC_ORG_ID` env, when set (the reports carry no org id) |
 | `x_TokenType` | token bucket |
 | `x_ServiceTier` / `x_ContextWindow` / `x_InferenceGeo` | cost/usage row dimensions, when present |
 

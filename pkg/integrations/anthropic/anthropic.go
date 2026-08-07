@@ -24,12 +24,13 @@ const (
 )
 
 type source struct {
-	get      integrations.HTTPGet
-	adminKey string
+	get       integrations.HTTPGet
+	adminKey  string
+	accountID string
 }
 
-func New(get integrations.HTTPGet, adminKey string) integrations.Source {
-	return &source{get: get, adminKey: adminKey}
+func New(get integrations.HTTPGet, adminKey, accountID string) integrations.Source {
+	return &source{get: get, adminKey: adminKey, accountID: accountID}
 }
 
 func (s *source) Name() string { return Name }
@@ -83,7 +84,7 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 	}
 
 	tokens, meta := indexUsage(usage, start, end)
-	return join(costs, tokens, meta, start, end), nil
+	return join(costs, tokens, meta, start, end, s.accountID), nil
 }
 
 type bucketKey struct {
@@ -127,7 +128,7 @@ func indexUsage(buckets []timeBucket[usageResult], start, end time.Time) (map[bu
 	return tokens, meta
 }
 
-func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map[bucketKey]dims, start, end time.Time) []model.UsageRecord {
+func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map[bucketKey]dims, start, end time.Time, accountID string) []model.UsageRecord {
 	out := []model.UsageRecord{}
 	costCents := map[bucketKey]*big.Rat{}
 	costMeta := map[bucketKey]dims{}
@@ -141,7 +142,7 @@ func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map
 		for _, r := range b.Results {
 			bucket, isToken := bucketForTokenType(r.TokenType)
 			if !isToken || r.Model == "" {
-				loose = append(loose, nonTokenCost(r, day))
+				loose = append(loose, nonTokenCost(r, day, accountID))
 				continue
 			}
 			k := bucketKey{day, r.Model, bucket}
@@ -165,32 +166,47 @@ func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map
 		if isZeroDims(d) {
 			d = meta[k]
 		}
-		out = append(out, tokenRecord(k, centsToDollars(cents), tokens[k], d))
+		out = append(out, tokenRecord(k, centsToDollars(cents), tokens[k], d, accountID))
 	}
 	for k, n := range tokens {
 		if seen[k] {
 			continue
 		}
-		out = append(out, tokenRecord(k, "", n, meta[k]))
+		out = append(out, tokenRecord(k, "", n, meta[k], accountID))
 	}
 	return append(out, loose...)
 }
 
-func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims) model.UsageRecord {
-	rec := model.UsageRecord{
+func baseRecord(accountID string) model.UsageRecord {
+	return model.UsageRecord{
 		Provider:           "Anthropic",
-		ServiceName:        k.model,
-		ServiceCategory:    "AI and Machine Learning",
-		ServiceSubcategory: "Generative AI",
-		ChargeCategory:     "Usage",
-		Day:                k.day,
+		Publisher:          "Anthropic",
+		InvoiceIssuer:      "Anthropic",
+		ServiceCategory:    model.ServiceCategoryAIAndMachineLearning,
+		ServiceSubcategory: model.ServiceSubcategoryGenerativeAI,
+		ChargeCategory:     model.ChargeUsage,
+		ChargeFrequency:    model.ChargeFrequencyUsageBased,
+		PricingCategory:    model.PricingStandard,
 		Currency:           "USD",
-		ResourceType:       "Model",
-		SkuID:              k.model,
-		SkuMeter:           string(k.bucket),
-		SkuPriceID:         skuPriceID(k.model, k.bucket),
-		Extensions:         map[string]any{"x_TokenType": string(k.bucket)},
+		PricingCurrency:    "USD",
+		BillingAccountID:   accountID,
 	}
+}
+
+func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims, accountID string) model.UsageRecord {
+	rec := baseRecord(accountID)
+	rec.ServiceName = k.model
+	rec.Day = k.day
+	rec.ResourceID = k.model
+	rec.ResourceName = k.model
+	rec.ResourceType = "Model"
+	rec.SkuID = k.model
+	rec.SkuMeter = string(k.bucket)
+	rec.SkuPriceID = skuPriceID(k.model, k.bucket)
+	rec.ChargeDescription = k.model + " " + string(k.bucket) + " tokens"
+	rec.Extensions = map[string]any{"x_TokenType": string(k.bucket)}
+	rec.SkuPriceDetails = skuPriceDetails(k.bucket, d)
+
 	if cost != "" {
 		c := model.Dec(cost)
 		rec.Cost = &c
@@ -199,28 +215,32 @@ func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims) model.Usage
 		q := model.Dec(strconv.FormatInt(tokenCount, 10))
 		rec.ConsumedQty = &q
 		rec.ConsumedUnit = "tokens"
+		mtok := model.Dec(perMTok(tokenCount))
+		rec.PricingQty = &mtok
+		rec.PricingUnit = "1M tokens"
+	}
+	if cost != "" && tokenCount != 0 {
+		if price, ok := unitPricePerMTok(cost, tokenCount); ok {
+			p := model.Dec(price)
+			rec.ListUnitPrice = &p
+			rec.ContractedUnitPrice = &p
+		}
 	}
 	addDims(rec.Extensions, d)
 	return rec
 }
 
-func nonTokenCost(r costResult, day time.Time) model.UsageRecord {
-	name := r.Model
-	if name == "" {
-		name = "Anthropic"
+func nonTokenCost(r costResult, day time.Time, accountID string) model.UsageRecord {
+	rec := baseRecord(accountID)
+	rec.ServiceName = r.Model
+	if rec.ServiceName == "" {
+		rec.ServiceName = "Anthropic"
 	}
-	rec := model.UsageRecord{
-		Provider:           "Anthropic",
-		ServiceName:        name,
-		ServiceCategory:    "AI and Machine Learning",
-		ServiceSubcategory: "Generative AI",
-		ChargeCategory:     "Usage",
-		ChargeDescription:  r.Description,
-		Day:                day,
-		Currency:           "USD",
-		SkuMeter:           r.CostType,
-		Extensions:         map[string]any{},
-	}
+	rec.ChargeDescription = r.Description
+	rec.Day = day
+	rec.SkuMeter = r.CostType
+	rec.Extensions = map[string]any{}
+
 	if amt, ok := new(big.Rat).SetString(r.Amount); ok {
 		c := model.Dec(centsToDollars(amt))
 		rec.Cost = &c
@@ -230,6 +250,34 @@ func nonTokenCost(r costResult, day time.Time) model.UsageRecord {
 		rec.Extensions = nil
 	}
 	return rec
+}
+
+func skuPriceDetails(bucket model.TokenBucket, d dims) map[string]any {
+	details := map[string]any{"token_type": string(bucket)}
+	if d.serviceTier != "" {
+		details["service_tier"] = d.serviceTier
+	}
+	if d.contextWindow != "" {
+		details["context_window"] = d.contextWindow
+	}
+	if d.inferenceGeo != "" {
+		details["inference_geo"] = d.inferenceGeo
+	}
+	return details
+}
+
+func perMTok(tokens int64) string {
+	q := new(big.Rat).SetFrac(big.NewInt(tokens), big.NewInt(1_000_000))
+	return trimDecimal(q)
+}
+
+func unitPricePerMTok(cost string, tokens int64) (string, bool) {
+	c, ok := new(big.Rat).SetString(cost)
+	if !ok {
+		return "", false
+	}
+	price := new(big.Rat).Mul(c, big.NewRat(1_000_000, tokens))
+	return trimDecimal(price), true
 }
 
 func addDims(ext map[string]any, d dims) {
@@ -265,8 +313,11 @@ func skuPriceID(m string, b model.TokenBucket) string {
 }
 
 func centsToDollars(cents *big.Rat) string {
-	dollars := new(big.Rat).Quo(cents, big.NewRat(100, 1))
-	s := dollars.FloatString(12)
+	return trimDecimal(new(big.Rat).Quo(cents, big.NewRat(100, 1)))
+}
+
+func trimDecimal(r *big.Rat) string {
+	s := r.FloatString(12)
 	if strings.Contains(s, ".") {
 		s = strings.TrimRight(s, "0")
 		s = strings.TrimRight(s, ".")

@@ -46,7 +46,7 @@ func anthropicFactory(get integrations.HTTPGet, env func(string) string) (integr
 	if adminKey == "" {
 		return nil, fmt.Errorf("missing ANTHROPIC_ADMIN_KEY env")
 	}
-	return anthropic.New(get, adminKey), nil
+	return anthropic.New(get, adminKey, env("ANTHROPIC_ORG_ID")), nil
 }
 
 func planetscaleFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {

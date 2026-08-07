@@ -49,7 +49,7 @@ func TestFetch(t *testing.T) {
 	start := time.Date(2025, 8, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2025, 8, 2, 0, 0, 0, 0, time.UTC)
 
-	recs, err := New(fixtureGet(t), "admin-key").Fetch(context.Background(), start, end)
+	recs, err := New(fixtureGet(t), "admin-key", "org-abc").Fetch(context.Background(), start, end)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,6 +124,31 @@ func TestFetch(t *testing.T) {
 		r, _ := find(recs, "claude-opus-4-6", model.BucketInput)
 		if r.Extensions["x_ServiceTier"] != "standard" || r.Extensions["x_ContextWindow"] != "0-200k" {
 			t.Fatalf("dims extensions: %+v", r.Extensions)
+		}
+	})
+
+	t.Run("focus enrichment fields populated", func(t *testing.T) {
+		r, _ := find(recs, "claude-opus-4-6", model.BucketInput)
+		if r.BillingAccountID != "org-abc" {
+			t.Fatalf("billing account id: %q", r.BillingAccountID)
+		}
+		if r.Publisher != "Anthropic" || r.InvoiceIssuer != "Anthropic" {
+			t.Fatalf("publisher/issuer: %+v", r)
+		}
+		if r.ChargeFrequency != "Usage-Based" || r.PricingCategory != "Standard" || r.PricingCurrency != "USD" {
+			t.Fatalf("charge/pricing meta: %+v", r)
+		}
+		if r.ResourceID != "claude-opus-4-6" || r.ChargeDescription != "claude-opus-4-6 input tokens" {
+			t.Fatalf("resource/description: %+v", r)
+		}
+		if r.PricingUnit != "1M tokens" || r.PricingQty == nil || string(*r.PricingQty) != "0.0015" {
+			t.Fatalf("pricing quantity: %v", r.PricingQty)
+		}
+		if r.ListUnitPrice == nil || string(*r.ListUnitPrice) != "2000" {
+			t.Fatalf("list unit price = %v, want 2000 ($3 / 0.0015 MTok)", r.ListUnitPrice)
+		}
+		if r.SkuPriceDetails["token_type"] != "input" || r.SkuPriceDetails["service_tier"] != "standard" {
+			t.Fatalf("sku price details: %+v", r.SkuPriceDetails)
 		}
 	})
 }

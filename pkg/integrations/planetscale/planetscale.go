@@ -133,7 +133,7 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 			continue
 		}
 		for _, li := range items {
-			out = append(out, toUsageRecord(li, databases[li.DatabaseID], periodStart, periodEnd))
+			out = append(out, toUsageRecord(li, databases[li.DatabaseID], periodStart, periodEnd, s.org))
 		}
 	}
 	return out, nil
@@ -195,19 +195,25 @@ func (s *source) listLineItems(ctx context.Context, invoiceID string) ([]lineIte
 	}
 }
 
-func toUsageRecord(li lineItem, db databaseItem, periodStart, periodEnd time.Time) model.UsageRecord {
+func toUsageRecord(li lineItem, db databaseItem, periodStart, periodEnd time.Time, org string) model.UsageRecord {
 	cost := model.Dec(li.Subtotal.String())
 	rec := model.UsageRecord{
 		Provider:           "PlanetScale",
+		Publisher:          "PlanetScale",
+		InvoiceIssuer:      "PlanetScale",
 		ServiceName:        "PlanetScale",
-		ServiceCategory:    "Databases",
-		ServiceSubcategory: "Managed Database",
+		ServiceCategory:    model.ServiceCategoryDatabases,
+		ServiceSubcategory: model.ServiceSubcategoryManagedDatabase,
 		ChargeCategory:     chargeCategory(li.Subtotal),
+		ChargeFrequency:    model.ChargeFrequencyUsageBased,
+		PricingCategory:    model.PricingStandard,
 		ChargeDescription:  chargeDescription(li),
+		BillingAccountID:   org,
 		PeriodStart:        &periodStart,
 		PeriodEnd:          &periodEnd,
 		Cost:               &cost,
 		Currency:           "USD",
+		PricingCurrency:    "USD",
 		ResourceID:         li.DatabaseID,
 		ResourceName:       li.DatabaseName,
 		ResourceType:       "Database",
@@ -230,11 +236,11 @@ func chargeDescription(li lineItem) string {
 	return li.MetricName
 }
 
-func chargeCategory(subtotal json.Number) string {
+func chargeCategory(subtotal json.Number) model.ChargeCategory {
 	if f, err := subtotal.Float64(); err == nil && f < 0 {
-		return "Credit"
+		return model.ChargeCredit
 	}
-	return "Usage"
+	return model.ChargeUsage
 }
 
 func skuPriceID(plan, metric string) string {
