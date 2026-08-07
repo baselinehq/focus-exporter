@@ -122,6 +122,32 @@ func TestFetch(t *testing.T) {
 		}
 	})
 
+	t.Run("bucket with an invalid timestamp is skipped, valid bucket retained", func(t *testing.T) {
+		if _, ok := find(recs, "gpt-in-bad-bucket", string(model.BucketOutput)); ok {
+			t.Fatal("row inside an unparseable bucket must be skipped")
+		}
+	})
+
+	t.Run("audio-only usage still emits input and output rows", func(t *testing.T) {
+		in, ok := find(recs, "gpt-audio", string(model.BucketInput))
+		if !ok {
+			t.Fatal("audio-only input row missing")
+		}
+		if in.Extensions["x_InputAudioTokens"] != int64(40) {
+			t.Fatalf("x_InputAudioTokens: %+v", in.Extensions)
+		}
+		if in.ConsumedQty == nil || string(*in.ConsumedQty) != "0" {
+			t.Fatalf("audio-only input ConsumedQty stays the text quantity (0): %v", in.ConsumedQty)
+		}
+		out, ok := find(recs, "gpt-audio", string(model.BucketOutput))
+		if !ok {
+			t.Fatal("audio-only output row missing")
+		}
+		if out.Extensions["x_OutputAudioTokens"] != int64(15) {
+			t.Fatalf("x_OutputAudioTokens: %+v", out.Extensions)
+		}
+	})
+
 	t.Run("num_model_requests carried as extension", func(t *testing.T) {
 		r, _ := find(recs, "gpt-4o", string(model.BucketInput))
 		if r.Extensions["x_ModelRequests"] != int64(7) {

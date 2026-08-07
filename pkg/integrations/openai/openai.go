@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/url"
 	"strconv"
 	"strings"
@@ -41,9 +42,9 @@ type timeBucket struct {
 }
 
 type page struct {
-	Data     []timeBucket `json:"data"`
-	HasMore  bool         `json:"has_more"`
-	NextPage string       `json:"next_page"`
+	Data     []json.RawMessage `json:"data"`
+	HasMore  bool              `json:"has_more"`
+	NextPage string            `json:"next_page"`
 }
 
 type usageResult struct {
@@ -98,7 +99,7 @@ func (s *source) tokenRecords(buckets []timeBucket, start, end time.Time) []mode
 			if r.Model == "" {
 				continue
 			}
-			if v := uncachedInput(r); v > 0 {
+			if v := uncachedInput(r); v > 0 || r.InputAudioTokens > 0 {
 				rec := s.tokenRecord(day, r.Model, model.BucketInput, v, r.NumModelRequests)
 				if r.InputAudioTokens > 0 {
 					rec.Extensions["x_InputAudioTokens"] = r.InputAudioTokens
@@ -111,7 +112,7 @@ func (s *source) tokenRecords(buckets []timeBucket, start, end time.Time) []mode
 			if r.InputCacheWriteTokens > 0 {
 				out = append(out, s.tokenRecord(day, r.Model, model.BucketCacheCreation, r.InputCacheWriteTokens, r.NumModelRequests))
 			}
-			if r.OutputTokens > 0 {
+			if r.OutputTokens > 0 || r.OutputAudioTokens > 0 {
 				rec := s.tokenRecord(day, r.Model, model.BucketOutput, r.OutputTokens, r.NumModelRequests)
 				if r.OutputAudioTokens > 0 {
 					rec.Extensions["x_OutputAudioTokens"] = r.OutputAudioTokens
@@ -177,9 +178,9 @@ func (s *source) costRecords(buckets []timeBucket, start, end time.Time) []model
 				log.Printf("openai: skipping unparseable cost row: %v", err)
 				continue
 			}
-			amount, err := r.Amount.Value.Float64()
-			if err != nil {
-				log.Printf("openai: skipping cost row with bad amount %q: %v", r.Amount.Value, err)
+			amount, ok := new(big.Rat).SetString(r.Amount.Value.String())
+			if !ok {
+				log.Printf("openai: skipping cost row with bad amount %q", r.Amount.Value)
 				continue
 			}
 
@@ -191,7 +192,7 @@ func (s *source) costRecords(buckets []timeBucket, start, end time.Time) []model
 			rec.ChargeDescription = r.LineItem
 			rec.SkuMeter = r.LineItem
 			rec.Day = day
-			if amount < 0 {
+			if amount.Sign() < 0 {
 				rec.ChargeCategory = model.ChargeCredit
 			}
 
@@ -252,7 +253,14 @@ func fetchAll(ctx context.Context, s *source, report, groupBy string, limit int,
 		if err := s.getJSON(ctx, endpoint, &body); err != nil {
 			return nil, err
 		}
-		out = append(out, body.Data...)
+		for _, raw := range body.Data {
+			var b timeBucket
+			if err := json.Unmarshal(raw, &b); err != nil {
+				log.Printf("openai: skipping unparseable %s bucket: %v", report, err)
+				continue
+			}
+			out = append(out, b)
+		}
 		if !body.HasMore || body.NextPage == "" {
 			return out, nil
 		}
