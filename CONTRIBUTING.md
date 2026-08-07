@@ -103,5 +103,8 @@ public issue: follow [SECURITY.md](SECURITY.md).
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the
-[Apache License 2.0](LICENSE).
+focus-exporter is dual-licensed under the [GNU AGPL-3.0](LICENSE) and a
+commercial license (see [LICENSING.md](LICENSING.md)). By contributing, you
+agree that your contributions are licensed under the AGPL-3.0 and may also be
+offered under the commercial license, so the dual-licensing model remains
+viable.

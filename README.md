@@ -1,7 +1,7 @@
 # focus-exporter
 
 [![CI](https://github.com/baselinehq/focus-exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/baselinehq/focus-exporter/actions/workflows/ci.yml)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Go 1.26+](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)](go.mod)
 
 A standalone Go binary that pulls a provider's own cost/usage API and emits
@@ -192,4 +192,13 @@ public issue. Release notes live in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+focus-exporter is dual-licensed:
+
+- **Open source:** [GNU AGPL-3.0](LICENSE). Free to use, modify, and
+  redistribute; if you modify it and distribute it or offer it over a network,
+  you must release your changes under the AGPL.
+- **Commercial:** for organizations that cannot meet the AGPL's terms (embedding
+  in a closed-source product, offering a proprietary/hosted service without
+  releasing source, etc.). Contact **support@costgraph.ai**.
+
+See [LICENSING.md](LICENSING.md) for details and [NOTICE](NOTICE).
