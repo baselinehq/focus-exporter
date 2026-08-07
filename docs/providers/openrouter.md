@@ -14,7 +14,7 @@ Provider name (for `--provider`): `openrouter`
 | Variable | Required | Description |
 | --- | --- | --- |
 | `OPENROUTER_MANAGEMENT_KEY` | yes | A **management** key (from openrouter.ai/settings/management-keys). A normal `sk-or-v1-` inference key returns `403 - Only management keys can perform this operation`. |
-| `OPENROUTER_ORG_ID` | no | Sets `BillingAccountId` (the activity API returns no account id). |
+| `OPENROUTER_ORG_ID` | yes | Sets `BillingAccountId` (mandatory FOCUS column; the activity API returns no account id). |
 
 The key is sent as `Authorization: Bearer <key>`.
 

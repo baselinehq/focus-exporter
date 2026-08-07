@@ -17,12 +17,14 @@ type HTTPGet func(ctx context.Context, url string, headers map[string]string) ([
 
 type Factory func(get HTTPGet, env func(string) string) (Source, error)
 
-// Capabilities declares provider traits the CLI can act on without building the
-// source (which would need credentials).
 type Capabilities struct {
-	// RequiresTimeRange is true when the provider's API mandates an explicit
-	// window (a start time), so an open-ended default export is invalid.
 	RequiresTimeRange bool
+}
+
+type Provider struct {
+	Name         string
+	Capabilities Capabilities
+	New          Factory
 }
 
 type entry struct {
@@ -40,6 +42,10 @@ func NewRegistry() *Registry {
 
 func (r *Registry) Register(name string, f Factory) {
 	r.RegisterWithCapabilities(name, f, Capabilities{})
+}
+
+func (r *Registry) Add(p Provider) {
+	r.RegisterWithCapabilities(p.Name, p.New, p.Capabilities)
 }
 
 func (r *Registry) RegisterWithCapabilities(name string, f Factory, caps Capabilities) {

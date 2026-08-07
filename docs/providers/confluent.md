@@ -13,7 +13,7 @@ Provider name (for `--provider`): `confluent`
 | --- | --- | --- |
 | `CONFLUENT_CLOUD_API_KEY` | yes | A **Cloud** (org-scoped) API key id - not a cluster/resource key. |
 | `CONFLUENT_CLOUD_API_SECRET` | yes | The Cloud API key secret. Treat as a credential; never commit it. |
-| `CONFLUENT_ORG_ID` | no | Sets `BillingAccountId` (the billing API doesn't return the org id). |
+| `CONFLUENT_ORG_ID` | yes | Sets `BillingAccountId` (mandatory FOCUS column; the billing API doesn't return the org id). |
 
 The key/secret are sent as HTTP Basic auth (`Authorization: Basic
 base64(key:secret)`), with the key id as the username.

@@ -9,6 +9,7 @@ import (
 
 func FromUsage(u model.UsageRecord) Record {
 	start, end := chargePeriod(u)
+	billStart, billEnd := billingPeriod(start)
 
 	chargeCategory := u.ChargeCategory
 	if chargeCategory == "" {
@@ -17,8 +18,8 @@ func FromUsage(u model.UsageRecord) Record {
 
 	r := Record{
 		BillingCurrency:    u.Currency,
-		BillingPeriodStart: start,
-		BillingPeriodEnd:   end,
+		BillingPeriodStart: billStart,
+		BillingPeriodEnd:   billEnd,
 		ChargeCategory:     string(chargeCategory),
 		ChargePeriodStart:  start,
 		ChargePeriodEnd:    end,
@@ -97,6 +98,11 @@ func chargePeriod(u model.UsageRecord) (time.Time, time.Time) {
 		return *u.PeriodStart, *u.PeriodEnd
 	}
 	return u.Day, u.Day.Add(24 * time.Hour)
+}
+
+func billingPeriod(chargeStart time.Time) (time.Time, time.Time) {
+	s := time.Date(chargeStart.Year(), chargeStart.Month(), 1, 0, 0, 0, 0, chargeStart.Location())
+	return s, s.AddDate(0, 1, 0)
 }
 
 func optional(s string) *string {

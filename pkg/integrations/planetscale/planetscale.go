@@ -26,6 +26,19 @@ type source struct {
 	token   string
 }
 
+var Provider = integrations.Provider{
+	Name: Name,
+	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+		org := env("PLANETSCALE_ORG")
+		tokenID := env("PLANETSCALE_SERVICE_TOKEN_ID")
+		token := env("PLANETSCALE_SERVICE_TOKEN")
+		if org == "" || tokenID == "" || token == "" {
+			return nil, fmt.Errorf("missing PLANETSCALE_ORG / PLANETSCALE_SERVICE_TOKEN_ID / PLANETSCALE_SERVICE_TOKEN env")
+		}
+		return New(get, org, tokenID, token), nil
+	},
+}
+
 func New(get integrations.HTTPGet, org, tokenID, token string) integrations.Source {
 	return &source{get: get, org: org, tokenID: tokenID, token: token}
 }

@@ -40,6 +40,7 @@ func testRegistry() *integrations.Registry {
 	cost := model.Dec("0.14")
 	good := fakeSource{name: "good", recs: []model.UsageRecord{{
 		Provider: "good", ServiceName: "svc-a", ChargeCategory: "Usage",
+		ChargeDescription: "svc-a usage", BillingAccountID: "acct-good",
 		Day:  time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC),
 		Cost: &cost, Currency: "USD",
 	}}}

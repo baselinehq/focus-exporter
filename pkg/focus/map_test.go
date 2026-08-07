@@ -73,7 +73,8 @@ func TestFromUsage(t *testing.T) {
 				if !r.ChargePeriodEnd.Equal(day.Add(24 * time.Hour)) {
 					t.Fatalf("ChargePeriodEnd wrong: %v", r.ChargePeriodEnd)
 				}
-				if !r.BillingPeriodStart.Equal(day) || !r.BillingPeriodEnd.Equal(day.Add(24*time.Hour)) {
+				monthStart := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+				if !r.BillingPeriodStart.Equal(monthStart) || !r.BillingPeriodEnd.Equal(monthStart.AddDate(0, 1, 0)) {
 					t.Fatalf("billing period wrong: %v %v", r.BillingPeriodStart, r.BillingPeriodEnd)
 				}
 				if r.Extensions["x_TokenType"] != string(model.BucketInput) {
