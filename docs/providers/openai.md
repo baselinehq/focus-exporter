@@ -21,7 +21,7 @@ Provider name (for `--provider`): `openai`
 | Variable | Required | Description |
 | --- | --- | --- |
 | `OPENAI_ADMIN_KEY` | yes | An Admin API key (`sk-admin-...`) or a key with the `api.usage.read` scope. Only an org owner can create an admin key / grant the scope. |
-| `OPENAI_ORG_ID` | no | Sets `BillingAccountId` on every record (OpenAI's usage/cost endpoints don't return the org id). |
+| `OPENAI_ORG_ID` | yes | Sets `BillingAccountId` on every record (mandatory FOCUS column; OpenAI's usage/cost endpoints don't return the org id). |
 
 The key is sent as `Authorization: Bearer <key>`.
 

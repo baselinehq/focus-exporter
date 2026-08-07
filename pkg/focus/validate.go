@@ -38,7 +38,20 @@ func Validate(r Record) error {
 			return fmt.Errorf("focus: invalid ServiceCategory %q", *r.ServiceCategory)
 		}
 	}
-	if r.BillingCurrency != "" && !isISO4217(r.BillingCurrency) {
+	for _, m := range []struct{ name, value string }{
+		{"BillingAccountId", r.BillingAccountId},
+		{"BillingCurrency", r.BillingCurrency},
+		{"ServiceName", r.ServiceName},
+		{"Provider", r.Provider},
+	} {
+		if m.value == "" {
+			return fmt.Errorf("focus: %s is required", m.name)
+		}
+	}
+	if r.ChargeDescription == nil || *r.ChargeDescription == "" {
+		return fmt.Errorf("focus: ChargeDescription is required")
+	}
+	if !isISO4217(r.BillingCurrency) {
 		return fmt.Errorf("focus: BillingCurrency %q is not an ISO 4217 code", r.BillingCurrency)
 	}
 	for _, c := range []struct{ name, value string }{
@@ -63,6 +76,15 @@ func Validate(r Record) error {
 	}
 	if !r.ChargePeriodEnd.After(r.ChargePeriodStart) {
 		return fmt.Errorf("focus: ChargePeriodEnd %s must be after ChargePeriodStart %s", r.ChargePeriodEnd, r.ChargePeriodStart)
+	}
+	if r.BillingPeriodStart.IsZero() {
+		return fmt.Errorf("focus: BillingPeriodStart is required")
+	}
+	if r.BillingPeriodEnd.IsZero() {
+		return fmt.Errorf("focus: BillingPeriodEnd is required")
+	}
+	if !r.BillingPeriodEnd.After(r.BillingPeriodStart) {
+		return fmt.Errorf("focus: BillingPeriodEnd %s must be after BillingPeriodStart %s", r.BillingPeriodEnd, r.BillingPeriodStart)
 	}
 	return nil
 }

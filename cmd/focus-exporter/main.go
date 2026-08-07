@@ -50,26 +50,29 @@ func defaultRegistry() *integrations.Registry {
 func confluentFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
 	keyID := env("CONFLUENT_CLOUD_API_KEY")
 	secret := env("CONFLUENT_CLOUD_API_SECRET")
-	if keyID == "" || secret == "" {
-		return nil, fmt.Errorf("missing CONFLUENT_CLOUD_API_KEY / CONFLUENT_CLOUD_API_SECRET env")
+	orgID := env("CONFLUENT_ORG_ID")
+	if keyID == "" || secret == "" || orgID == "" {
+		return nil, fmt.Errorf("missing CONFLUENT_CLOUD_API_KEY / CONFLUENT_CLOUD_API_SECRET / CONFLUENT_ORG_ID env")
 	}
-	return confluent.New(get, keyID, secret, env("CONFLUENT_ORG_ID")), nil
+	return confluent.New(get, keyID, secret, orgID), nil
 }
 
 func openrouterFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
 	key := env("OPENROUTER_MANAGEMENT_KEY")
-	if key == "" {
-		return nil, fmt.Errorf("missing OPENROUTER_MANAGEMENT_KEY env")
+	orgID := env("OPENROUTER_ORG_ID")
+	if key == "" || orgID == "" {
+		return nil, fmt.Errorf("missing OPENROUTER_MANAGEMENT_KEY / OPENROUTER_ORG_ID env")
 	}
-	return openrouter.New(get, key, env("OPENROUTER_ORG_ID")), nil
+	return openrouter.New(get, key, orgID), nil
 }
 
 func openaiFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
 	adminKey := env("OPENAI_ADMIN_KEY")
-	if adminKey == "" {
-		return nil, fmt.Errorf("missing OPENAI_ADMIN_KEY env")
+	orgID := env("OPENAI_ORG_ID")
+	if adminKey == "" || orgID == "" {
+		return nil, fmt.Errorf("missing OPENAI_ADMIN_KEY / OPENAI_ORG_ID env")
 	}
-	return openai.New(get, adminKey, env("OPENAI_ORG_ID")), nil
+	return openai.New(get, adminKey, orgID), nil
 }
 
 func anthropicFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
@@ -142,7 +145,11 @@ func run(reg *integrations.Registry, args []string, env func(string) string, std
 			continue
 		}
 		for _, u := range usage {
-			records = append(records, focus.FromUsage(u))
+			rec := focus.FromUsage(u)
+			if err := focus.Validate(rec); err != nil {
+				return fmt.Errorf("provider %s: %w", name, err)
+			}
+			records = append(records, rec)
 		}
 	}
 
