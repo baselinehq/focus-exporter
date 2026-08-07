@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Confluent Cloud adapter: one FOCUS 1.2 record per `/billing/v1/costs` line item
+  (real billed `amount` in dollars, `resource` id/name, `product`/`line_type`
+  SKU), invoice-cost shape. Basic auth; `metadata.next` pagination; promo/negative
+  lines flagged as `Credit`. Registered as `--provider confluent`
+  (env `CONFLUENT_CLOUD_API_KEY` / `CONFLUENT_CLOUD_API_SECRET`).
 - OpenAI adapter: token records per (day, model, bucket) from the
   `usage/completions` Admin API and separate line-item cost records (real dollars)
   from `costs`. Cost and token detail are separate grains because the adapter

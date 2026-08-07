@@ -91,6 +91,7 @@ func (s ServiceCategory) Valid() bool {
 type ServiceSubcategory string
 
 const (
-	ServiceSubcategoryGenerativeAI    ServiceSubcategory = "Generative AI"
-	ServiceSubcategoryManagedDatabase ServiceSubcategory = "Managed Database"
+	ServiceSubcategoryGenerativeAI       ServiceSubcategory = "Generative AI"
+	ServiceSubcategoryManagedDatabase    ServiceSubcategory = "Managed Database"
+	ServiceSubcategoryStreamingAnalytics ServiceSubcategory = "Streaming Analytics"
 )
