@@ -46,6 +46,7 @@ func testRegistry() *integrations.Registry {
 	reg.Register("good", fakeFactory(good, nil))
 	reg.Register("bad", fakeFactory(fakeSource{name: "bad", err: fmt.Errorf("boom")}, nil))
 	reg.Register("noenv", fakeFactory(nil, fmt.Errorf("missing FAKE_KEY env")))
+	reg.RegisterWithCapabilities("needswindow", fakeFactory(good, nil), integrations.Capabilities{RequiresTimeRange: true})
 	return reg
 }
 
@@ -167,8 +168,8 @@ func TestRun(t *testing.T) {
 			wantErr: "--end must be after --start",
 		},
 		{
-			name:    "anthropic requires explicit window",
-			args:    []string{"--provider", "anthropic"},
+			name:    "provider that requires a time range is rejected without a window",
+			args:    []string{"--provider", "needswindow"},
 			wantErr: "requires an explicit window",
 		},
 	}
