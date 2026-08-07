@@ -18,7 +18,7 @@ import (
 const (
 	Name       = "openrouter"
 	baseURL    = "https://openrouter.ai"
-	maxDays    = 400
+	windowDays = 30
 	dateLayout = "2006-01-02"
 )
 
@@ -26,10 +26,15 @@ type source struct {
 	get       integrations.HTTPGet
 	key       string
 	accountID string
+	now       func() time.Time
 }
 
 func New(get integrations.HTTPGet, managementKey, accountID string) integrations.Source {
-	return &source{get: get, key: managementKey, accountID: accountID}
+	return newSource(get, managementKey, accountID, time.Now)
+}
+
+func newSource(get integrations.HTTPGet, managementKey, accountID string, now func() time.Time) *source {
+	return &source{get: get, key: managementKey, accountID: accountID, now: now}
 }
 
 func (s *source) Name() string { return Name }
@@ -54,11 +59,21 @@ type activityItem struct {
 }
 
 func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.UsageRecord, error) {
+	if s.key == "" {
+		return nil, fmt.Errorf("openrouter: missing management key")
+	}
+
+	today := s.now().UTC().Truncate(24 * time.Hour)
+	earliest := today.AddDate(0, 0, -windowDays)
+	from := start.UTC().Truncate(24 * time.Hour)
+	if from.Before(earliest) {
+		from = earliest
+	}
+
 	out := []model.UsageRecord{}
-	days := 0
-	for day := start.UTC().Truncate(24 * time.Hour); day.Before(end); day = day.AddDate(0, 0, 1) {
-		if days++; days > maxDays {
-			break
+	for day := from; day.Before(end) && day.Before(today); day = day.AddDate(0, 0, 1) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
 		}
 		endpoint, err := s.activityURL(day)
 		if err != nil {
@@ -66,6 +81,9 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 		}
 		var body activityResponse
 		if err := s.getJSON(ctx, endpoint, &body); err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
 			log.Printf("openrouter: skipping %s: %v", day.Format(dateLayout), err)
 			continue
 		}

@@ -41,7 +41,8 @@ func TestFetch(t *testing.T) {
 	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)
 
-	recs, err := New(fixtureGet(t), "mgmt-key", "acct-1").Fetch(context.Background(), start, end)
+	clock := func() time.Time { return time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC) }
+	recs, err := newSource(fixtureGet(t), "mgmt-key", "acct-1", clock).Fetch(context.Background(), start, end)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,6 +97,32 @@ func TestFetch(t *testing.T) {
 		}
 		if r.Extensions["x_ByokRequests"] != int64(5) {
 			t.Fatalf("x_ByokRequests: %+v", r.Extensions)
+		}
+	})
+}
+
+func TestFetchErrors(t *testing.T) {
+	clock := func() time.Time { return time.Date(2026, 7, 3, 0, 0, 0, 0, time.UTC) }
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)
+	getNever := func(context.Context, string, map[string]string) ([]byte, error) {
+		t.Fatal("must not make a request")
+		return nil, nil
+	}
+
+	t.Run("missing key errors instead of empty export", func(t *testing.T) {
+		_, err := newSource(getNever, "", "", clock).Fetch(context.Background(), start, end)
+		if err == nil {
+			t.Fatal("empty key must return an error, not a silent empty result")
+		}
+	})
+
+	t.Run("cancelled context is returned, not skipped", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		_, err := newSource(getNever, "mgmt-key", "", clock).Fetch(ctx, start, end)
+		if err == nil {
+			t.Fatal("cancelled context must surface an error")
 		}
 	})
 }
