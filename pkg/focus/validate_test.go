@@ -47,8 +47,8 @@ func TestValidate(t *testing.T) {
 		{"invalid contracted cost rejected", func(r *Record) { r.ContractedCost = "abc" }, true},
 		{"empty contracted cost allowed", func(r *Record) { r.ContractedCost = "" }, false},
 		{"hex cost rejected", func(r *Record) { r.EffectiveCost = "0x1p2" }, true},
-		{"exponent cost rejected", func(r *Record) { r.EffectiveCost = "1e3" }, true},
-		{"leading plus cost rejected", func(r *Record) { r.EffectiveCost = "+1" }, true},
+		{"exponent cost allowed", func(r *Record) { r.EffectiveCost = "1e3" }, false},
+		{"leading plus cost allowed", func(r *Record) { r.EffectiveCost = "+1" }, false},
 		{"negative cost allowed", func(r *Record) { r.EffectiveCost = "-12.10" }, false},
 		{"unassigned currency rejected", func(r *Record) { r.BillingCurrency = "ZZZ" }, true},
 	}

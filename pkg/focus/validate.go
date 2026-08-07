@@ -2,10 +2,9 @@ package focus
 
 import (
 	"fmt"
-	"math"
-	"strconv"
 	"strings"
 
+	"github.com/shopspring/decimal"
 	"golang.org/x/text/currency"
 )
 
@@ -17,46 +16,12 @@ func isISO4217(code string) bool {
 	return err == nil
 }
 
-func isPlainDecimal(v string) bool {
-	if strings.ContainsAny(v, "xXeEpP+") {
-		return false
-	}
-	s := v
-	if strings.HasPrefix(s, "-") {
-		s = s[1:]
-	}
-	if s == "" {
-		return false
-	}
-	dots := 0
-	for _, c := range s {
-		if c == '.' {
-			dots++
-			if dots > 1 {
-				return false
-			}
-			continue
-		}
-		if c < '0' || c > '9' {
-			return false
-		}
-	}
-	return true
-}
-
 func finiteDecimal(name, v string) error {
 	if v == "" {
 		return fmt.Errorf("focus: %s is required", name)
 	}
-	if !isPlainDecimal(v) {
-		return fmt.Errorf("focus: %s %q is not a plain decimal", name, v)
-	}
-	f, err := strconv.ParseFloat(v, 64)
-	if err != nil {
-		return fmt.Errorf("focus: %s %q is not a decimal", name, v)
-	}
-	if math.IsNaN(f) || math.IsInf(f, 0) {
-		return fmt.Errorf("focus: %s is not a finite number", name)
+	if _, err := decimal.NewFromString(v); err != nil {
+		return fmt.Errorf("focus: %s %q is not a valid decimal", name, v)
 	}
 	return nil
 }
