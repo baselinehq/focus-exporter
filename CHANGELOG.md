@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Anthropic adapter: one FOCUS 1.2 record per (day, model, token bucket) from
+  the Admin API, joining the cost report (real billed cost, cents to major) with
+  the messages usage report (token counts). Both cache-creation token types sum
+  into `cache_creation`; token detail rides as `x_` extensions. Registered as
+  `--provider anthropic` (env `ANTHROPIC_ADMIN_KEY`).
 - PlanetScale billing adapter: one FOCUS 1.2 record per (invoice month,
   database, billing metric) from the PlanetScale invoices API, with real billed
   cost, credit/proration lines flagged as `ChargeCategory = "Credit"`, and

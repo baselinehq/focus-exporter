@@ -175,8 +175,8 @@ go test ./...
 
 ## Roadmap
 
-- Model-cost providers (Anthropic, OpenAI) emitting token detail as `x_`
-  extensions.
+- OpenAI model-cost provider emitting token detail as `x_` extensions
+  (Anthropic already shipped).
 - A stable synthetic record id (`x_LineItemId`) so downstream ingestion can
   dedup without relying on field values, which FOCUS does not guarantee to be
   unique.

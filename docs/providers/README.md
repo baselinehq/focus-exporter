@@ -11,12 +11,12 @@ run an export.
 | Provider | Domain | Auth | Doc |
 | --- | --- | --- | --- |
 | PlanetScale | Managed database (infra cost) | Service token | [planetscale.md](planetscale.md) |
+| Anthropic | AI model cost | Admin API key | [anthropic.md](anthropic.md) |
 
 ## Planned
 
 | Provider | Domain | Notes |
 | --- | --- | --- |
-| Anthropic | AI model cost | Token-level real cost; token detail as `x_` extensions |
 | OpenAI | AI model cost | Model-level tokens + coarse cost |
 
 ## Documenting a new provider

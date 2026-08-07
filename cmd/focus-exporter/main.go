@@ -13,6 +13,7 @@ import (
 
 	"github.com/baselinehq/focus-exporter/pkg/focus"
 	"github.com/baselinehq/focus-exporter/pkg/integrations"
+	"github.com/baselinehq/focus-exporter/pkg/integrations/anthropic"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/planetscale"
 	"github.com/baselinehq/focus-exporter/pkg/sink"
 )
@@ -36,7 +37,16 @@ func (s *stringSlice) Set(v string) error {
 func defaultRegistry() *integrations.Registry {
 	reg := integrations.NewRegistry()
 	reg.Register(planetscale.Name, planetscaleFactory)
+	reg.Register(anthropic.Name, anthropicFactory)
 	return reg
+}
+
+func anthropicFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	adminKey := env("ANTHROPIC_ADMIN_KEY")
+	if adminKey == "" {
+		return nil, fmt.Errorf("missing ANTHROPIC_ADMIN_KEY env")
+	}
+	return anthropic.New(get, adminKey), nil
 }
 
 func planetscaleFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {

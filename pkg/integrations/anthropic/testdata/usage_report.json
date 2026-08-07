@@ -1,0 +1,35 @@
+{
+  "data": [
+    {
+      "starting_at": "2025-08-01T00:00:00Z",
+      "ending_at": "2025-08-02T00:00:00Z",
+      "results": [
+        {
+          "model": "claude-opus-4-6",
+          "uncached_input_tokens": 1500,
+          "output_tokens": 500,
+          "cache_read_input_tokens": 200,
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 1000,
+            "ephemeral_5m_input_tokens": 500
+          },
+          "service_tier": "standard",
+          "context_window": "0-200k",
+          "inference_geo": "global"
+        },
+        {
+          "model": "claude-haiku-4",
+          "uncached_input_tokens": 1000,
+          "output_tokens": 2000,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          }
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}
