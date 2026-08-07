@@ -166,8 +166,8 @@ func TestFetch(t *testing.T) {
 		if r.Currency != "USD" {
 			t.Fatalf("currency usd must uppercase to USD: %q", r.Currency)
 		}
-		if r.ConsumedQty != nil {
-			t.Fatalf("line-item cost has no token quantity: %v", r.ConsumedQty)
+		if r.ConsumedQty == nil || string(*r.ConsumedQty) != "60000" {
+			t.Fatalf("cost line quantity carried to ConsumedQty: %v", r.ConsumedQty)
 		}
 		img, ok := find(recs, "Image models", "Image models")
 		if !ok || img.Cost == nil || string(*img.Cost) != "0.06" {

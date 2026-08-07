@@ -64,7 +64,8 @@ type costResult struct {
 		Value    json.Number `json:"value"`
 		Currency string      `json:"currency"`
 	} `json:"amount"`
-	LineItem string `json:"line_item"`
+	LineItem string      `json:"line_item"`
+	Quantity json.Number `json:"quantity"`
 }
 
 func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.UsageRecord, error) {
@@ -204,6 +205,13 @@ func (s *source) costRecords(buckets []timeBucket, start, end time.Time) []model
 			}
 			rec.Currency = currency
 			rec.PricingCurrency = currency
+			if r.Quantity != "" {
+				if f, err := r.Quantity.Float64(); err == nil && f != 0 {
+					q := model.Dec(r.Quantity.String())
+					rec.ConsumedQty = &q
+					rec.PricingQty = &q
+				}
+			}
 			out = append(out, rec)
 		}
 	}

@@ -46,6 +46,12 @@ internal/gen/                FOCUS-type generator (go:generate)
 
 ## Rules for a new adapter
 
+- **Maximize information density.** Emit the richest record the API allows.
+  Capture every useful field the response returns - map it to a FOCUS column when
+  one fits, otherwise an `x_` extension. Prefer more signal over less: token
+  breakdowns, per-unit price, quantities, resource/account identity, provider/
+  endpoint/tier dimensions. Never silently drop a field the API gives you. A
+  sparse record is a bug, not a style choice.
 - **Use the typed FOCUS enums** in `pkg/model` (`ChargeCategory`,
   `ChargeFrequency`, `PricingCategory`, `ServiceCategory`, `ServiceSubcategory`) -
   never raw strings for those columns.

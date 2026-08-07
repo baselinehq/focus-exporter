@@ -15,6 +15,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a model). Cache-write tokens map to `cache_creation`, audio tokens ride as `x_`
   extensions, and malformed rows are skipped per row. Registered as
   `--provider openai` (env `OPENAI_ADMIN_KEY`, optional `OPENAI_ORG_ID`).
+- Adapter convention (AGENTS.md / CLAUDE.md): records must be information-rich -
+  capture every useful API field as a FOCUS column or `x_` extension. OpenAI cost
+  records now carry the line-item `quantity` as `ConsumedQuantity`.
 - Registry capability flag (`Capabilities.RequiresTimeRange`) so the CLI rejects
   an open-ended window for providers whose API mandates a start time, instead of
   hard-coding provider names.

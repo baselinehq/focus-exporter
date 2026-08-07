@@ -6,10 +6,39 @@
       "start_time": 1754006400,
       "end_time": 1754092800,
       "results": [
-        {"object": "organization.costs.result", "amount": {"value": 12.34, "currency": "usd"}, "line_item": "gpt-4o, input"},
-        {"object": "organization.costs.result", "amount": {"value": 0.06, "currency": "usd"}, "line_item": "Image models"},
-        {"object": "organization.costs.result", "amount": {"value": -5.0, "currency": "usd"}, "line_item": "Credit"},
-        {"object": "organization.costs.result", "amount": {"value": "abc", "currency": "usd"}, "line_item": "Malformed"}
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 12.34,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o, input",
+          "quantity": 60000
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 0.06,
+            "currency": "usd"
+          },
+          "line_item": "Image models"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": -5.0,
+            "currency": "usd"
+          },
+          "line_item": "Credit"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": "abc",
+            "currency": "usd"
+          },
+          "line_item": "Malformed"
+        }
       ]
     }
   ],
