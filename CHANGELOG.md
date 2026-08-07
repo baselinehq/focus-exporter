@@ -16,7 +16,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `BillingPeriodStart`/`BillingPeriodEnd` are now the calendar month containing
   the charge period (the invoice cycle) rather than a copy of the charge period.
 - `OPENAI_ORG_ID`, `OPENROUTER_ORG_ID`, and `CONFLUENT_ORG_ID` are now required
-  (they populate the mandatory `BillingAccountId` column and their APIs do not
+  (they populate the mandatory `BillingAccountId` column when their APIs do not
   return an account id). Anthropic still resolves the account automatically from
   `GET /v1/organizations/me`.
 

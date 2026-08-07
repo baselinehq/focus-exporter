@@ -52,9 +52,10 @@ internal/gen/                FOCUS-type generator (go:generate)
 - **Fill the shared columns** every adapter sets: `Provider`, `Publisher`,
   `InvoiceIssuer`, `ServiceCategory`/`Subcategory`, `ChargeCategory`,
   `ChargeFrequency`, `PricingCategory`, `Currency`/`PricingCurrency`,
-  `ChargeDescription`, `SkuMeter`/`SkuPriceID`, and `BillingAccountId`/`Name`
-  when the API exposes an org identity (fetch it if there's an endpoint, e.g.
-  Anthropic `/organizations/me`).
+  `ChargeDescription`, `SkuMeter`/`SkuPriceID`, and `BillingAccountId`/`Name`.
+  `BillingAccountId` is a mandatory FOCUS column: resolve it from the API when
+  there's an endpoint (e.g. Anthropic `/organizations/me`), otherwise require an
+  org-id env in the factory so it is never empty.
 - **No float drift on money**: decode amounts as `json.Number` or a decimal
   string; never parse to `float64` and re-format. Cents vs dollars: verify per
   API and convert exactly (`math/big.Rat`).
@@ -103,9 +104,26 @@ GOTOOLCHAIN=go1.26.0 deadcode ./...   # nothing new on the branch
 
 Do not hand-edit `pkg/focus/record_gen.go`; edit `columns.json` and regenerate.
 
-## Style
+## Standards
 
-- **No comments** unless a non-obvious WHY (hidden constraint, subtle invariant).
-  Default to none.
-- Plain ASCII, no em-dashes.
-- Smallest diff that matches the surrounding code.
+- **No comments.** Write zero comments - not on functions, structs, fields, or
+  inline. Make the code read on its own with clear names and small functions.
+  The only exception is a machine-required marker such as the generated-file
+  `DO NOT EDIT` line. If you think a comment is needed, fix the code instead.
+- **Plain ASCII, no AI tells.** No em-dash or en-dash (use a spaced hyphen, a
+  comma, or two sentences), no ellipsis character (use three periods), no
+  curly/smart quotes (use straight quotes), no arrows (use `->`), no
+  multiplication sign (use `x`), no section sign (write "section"), no
+  inequality glyphs (use `>=`, `<=`). Applies to code, docs, commits, and PRs.
+- **Never ignore an error.** Handle every error path; do not discard with `_`.
+  Surface cleanup/close failures too (`errors.Join` or log).
+- **One builder for derived values.** A composite key, identity string, or
+  fingerprint gets a single named function that owns its format; callers reuse
+  it, never re-concatenate.
+- **Tests are table-driven and minimal.** Extend the nearest existing test
+  before adding a new one; cover the happy path and one realistic failure. Test
+  LOC should not dwarf the code under test.
+- **No attribution or tool branding** in commits, PR titles/bodies, or docs. No
+  `Co-Authored-By`, no "generated with" lines.
+- Smallest diff that matches the surrounding code. No backwards-compat shims or
+  feature flags for cases that cannot happen.

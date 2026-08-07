@@ -17,11 +17,7 @@ type HTTPGet func(ctx context.Context, url string, headers map[string]string) ([
 
 type Factory func(get HTTPGet, env func(string) string) (Source, error)
 
-// Capabilities declares provider traits the CLI can act on without building the
-// source (which would need credentials).
 type Capabilities struct {
-	// RequiresTimeRange is true when the provider's API mandates an explicit
-	// window (a start time), so an open-ended default export is invalid.
 	RequiresTimeRange bool
 }
 
