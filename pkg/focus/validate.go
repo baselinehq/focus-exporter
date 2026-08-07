@@ -5,14 +5,16 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"golang.org/x/text/currency"
 )
 
 func isISO4217(code string) bool {
-	if len(code) != 3 {
+	if code != strings.ToUpper(code) {
 		return false
 	}
-	_, ok := validCurrencyCodes[code]
-	return ok
+	_, err := currency.ParseISO(code)
+	return err == nil
 }
 
 func isPlainDecimal(v string) bool {
