@@ -140,10 +140,10 @@ func (s *source) toRecord(c costItem) (model.UsageRecord, bool) {
 	if c.Resource != nil && c.Resource.Environment != nil && c.Resource.Environment.ID != "" {
 		rec.Extensions["x_Environment"] = c.Resource.Environment.ID
 	}
-	if nonZero(c.OriginalAmount) {
+	if integrations.NonZero(c.OriginalAmount) {
 		rec.Extensions["x_OriginalAmount"] = c.OriginalAmount.String()
 	}
-	if nonZero(c.DiscountAmount) {
+	if integrations.NonZero(c.DiscountAmount) {
 		rec.Extensions["x_DiscountAmount"] = c.DiscountAmount.String()
 	}
 	if len(rec.Extensions) == 0 {
@@ -181,14 +181,6 @@ func chargeCategory(c costItem) model.ChargeCategory {
 
 func skuPriceID(product, lineType string) string {
 	return product + "|" + lineType
-}
-
-func nonZero(n json.Number) bool {
-	if n == "" {
-		return false
-	}
-	f, err := n.Float64()
-	return err == nil && f != 0
 }
 
 func parseDate(value string) (time.Time, error) {

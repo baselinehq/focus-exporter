@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/big"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/baselinehq/focus-exporter/pkg/integrations"
@@ -126,10 +124,10 @@ func (s *source) toRecord(item activityItem, day time.Time) model.UsageRecord {
 		q := model.Dec(strconv.FormatInt(total, 10))
 		rec.ConsumedQty = &q
 		rec.ConsumedUnit = "tokens"
-		mtok := model.Dec(perMTok(total))
+		mtok := model.Dec(integrations.PerMTok(total))
 		rec.PricingQty = &mtok
 		rec.PricingUnit = "1M tokens"
-		if price, ok := unitPricePerMTok(item.Usage, total); ok {
+		if price, ok := integrations.UnitPricePerMTok(item.Usage.String(), total); ok {
 			p := model.Dec(price)
 			rec.ListUnitPrice = &p
 			rec.ContractedUnitPrice = &p
@@ -158,7 +156,7 @@ func (s *source) toRecord(item activityItem, day time.Time) model.UsageRecord {
 	if item.Requests > 0 {
 		rec.Extensions["x_ModelRequests"] = item.Requests
 	}
-	if nonZero(item.BYOKUsage) {
+	if integrations.NonZero(item.BYOKUsage) {
 		rec.Extensions["x_ByokUsage"] = item.BYOKUsage.String()
 	}
 	return rec
@@ -169,34 +167,6 @@ func numberOrZero(n json.Number) string {
 		return "0"
 	}
 	return n.String()
-}
-
-func perMTok(tokens int64) string {
-	return trimDecimal(new(big.Rat).SetFrac(big.NewInt(tokens), big.NewInt(1_000_000)))
-}
-
-func unitPricePerMTok(usage json.Number, tokens int64) (string, bool) {
-	c, ok := new(big.Rat).SetString(usage.String())
-	if !ok || c.Sign() == 0 || tokens == 0 {
-		return "", false
-	}
-	return trimDecimal(new(big.Rat).Mul(c, big.NewRat(1_000_000, tokens))), true
-}
-
-func trimDecimal(r *big.Rat) string {
-	s := r.FloatString(12)
-	if strings.Contains(s, ".") {
-		s = strings.TrimRight(strings.TrimRight(s, "0"), ".")
-	}
-	return s
-}
-
-func nonZero(n json.Number) bool {
-	if n == "" {
-		return false
-	}
-	f, err := n.Float64()
-	return err == nil && f != 0
 }
 
 func (s *source) activityURL(day time.Time) (string, error) {
