@@ -154,7 +154,7 @@ func (s *source) tokenRecord(day time.Time, modelName string, bucket model.Token
 	q := model.Dec(strconv.FormatInt(tokens, 10))
 	rec.ConsumedQty = &q
 	rec.ConsumedUnit = "tokens"
-	pq := model.Dec(perMTok(tokens))
+	pq := model.Dec(integrations.PerMTok(tokens))
 	rec.PricingQty = &pq
 	rec.PricingUnit = "1M tokens"
 
@@ -224,10 +224,6 @@ func (s *source) baseRecord() model.UsageRecord {
 		PricingCurrency:    "USD",
 		BillingAccountID:   s.accountID,
 	}
-}
-
-func perMTok(tokens int64) string {
-	return strconv.FormatFloat(float64(tokens)/1_000_000, 'f', -1, 64)
 }
 
 func bucketDay(unix int64, start, end time.Time) (time.Time, bool) {

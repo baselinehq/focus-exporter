@@ -1,0 +1,81 @@
+# OpenRouter
+
+Exports FOCUS 1.2 records from the OpenRouter [Activity API](https://openrouter.ai/docs/api/api-reference/analytics/get-user-activity)
+(`GET /api/v1/activity`). OpenRouter is an LLM gateway, so one integration
+captures spend across **every model and upstream provider** you route through it.
+One record per **(day, model, upstream provider, endpoint)** - the activity API's
+own grain - with real credit spend
+(`usage`, in USD) as the billed cost.
+
+Provider name (for `--provider`): `openrouter`
+
+## Environment variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `OPENROUTER_MANAGEMENT_KEY` | yes | A **management** key (from openrouter.ai/settings/management-keys). A normal `sk-or-v1-` inference key returns `403 - Only management keys can perform this operation`. |
+| `OPENROUTER_ORG_ID` | no | Sets `BillingAccountId` (the activity API returns no account id). |
+
+The key is sent as `Authorization: Bearer <key>`.
+
+## API endpoints used
+
+Base URL: `https://openrouter.ai`
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/v1/activity?date=YYYY-MM-DD` | Per-model, per-provider usage and cost for a single UTC day. |
+
+The adapter iterates the requested window day by day, restricted to the last ~30
+completed UTC days (it never requests the current incomplete day). Dates outside
+the last ~30 completed UTC days return HTTP 400; the adapter logs and skips them.
+
+## FOCUS mapping
+
+| FOCUS column | Source |
+| --- | --- |
+| `BilledCost` / `EffectiveCost` / `ListCost` / `ContractedCost` | `usage` (credit spend, USD) |
+| `BillingCurrency` / `PricingCurrency` | `USD` (credits are USD) |
+| `ChargePeriodStart` / `ChargePeriodEnd` | the day |
+| `ConsumedQuantity` / `ConsumedUnit` | `prompt_tokens + completion_tokens` / `tokens` |
+| `PricingQuantity` / `PricingUnit` | tokens / 1e6, `1M tokens` |
+| `ListUnitPrice` / `ContractedUnitPrice` | `usage` / (tokens / 1e6) - blended per-MTok rate |
+| `ServiceName`, `SkuId`, `ResourceId`/`Name` | `model` |
+| `Provider` / `Publisher` / `InvoiceIssuer` | `OpenRouter` |
+| `ServiceCategory` / `ServiceSubcategory` | `AI and Machine Learning` / `Generative AI` |
+| `SkuMeter` / `SkuPriceId` | upstream `provider_name` / `model\|provider_name` |
+| `x_UpstreamProvider` | `provider_name` (e.g. OpenAI, Anthropic) |
+| `x_PromptTokens` / `x_CompletionTokens` / `x_ReasoningTokens` | token counts |
+| `x_ModelRequests` | `requests` |
+| `x_ModelPermaslug` | `model_permaslug` |
+| `x_EndpointId` | `endpoint_id` |
+| `x_ByokUsage` / `x_ByokRequests` | `byok_usage_inference` / `byok_requests` (see below) |
+
+## Example
+
+```bash
+export OPENROUTER_MANAGEMENT_KEY=sk-or-...
+focus-exporter --provider openrouter --start 2026-07-01 --end 2026-08-01 --format json
+```
+
+## Notes and limitations
+
+- **A window is required** and capped to the last ~30 completed UTC days by the
+  API. Pass `--start`/`--end` (or `--month`); the adapter clamps the request to
+  that window and skips the current incomplete day.
+- **BYOK spend is kept out of `BilledCost`.** `byok_usage_inference` is spend that
+  routed through your own upstream provider keys - OpenRouter did not bill it, and
+  it would double-count against your direct provider bill. It is carried as
+  `x_ByokUsage` for visibility only.
+- **Cost is per (model, provider), not per token bucket.** OpenRouter reports one
+  `usage` figure per model/provider per day, so cost is not split into input vs
+  output; the token breakdown rides as `x_` extensions.
+- Wait ~30 minutes past a UTC day boundary before pulling that day (late-finishing
+  requests are attributed by start time). Dates outside the last ~30 completed UTC
+  days return HTTP 400; the adapter logs and skips them rather than failing the run.
+- **Grain is per endpoint.** A model on one provider can have several endpoints
+  (e.g. different quantizations or regions); each is its own activity row and its
+  own record, distinguished by `x_EndpointId`. Cost is not aggregated across
+  endpoints, so per-endpoint spend is preserved.
+- Verified end-to-end against a live management key (real per-model, per-provider
+  spend across OpenAI / Azure / Amazon Bedrock upstreams).

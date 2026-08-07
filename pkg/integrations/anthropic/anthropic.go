@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/baselinehq/focus-exporter/pkg/integrations"
@@ -242,12 +241,12 @@ func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims, accountID, 
 		q := model.Dec(strconv.FormatInt(tokenCount, 10))
 		rec.ConsumedQty = &q
 		rec.ConsumedUnit = "tokens"
-		mtok := model.Dec(perMTok(tokenCount))
+		mtok := model.Dec(integrations.PerMTok(tokenCount))
 		rec.PricingQty = &mtok
 		rec.PricingUnit = "1M tokens"
 	}
 	if cost != "" && tokenCount != 0 {
-		if price, ok := unitPricePerMTok(cost, tokenCount); ok {
+		if price, ok := integrations.UnitPricePerMTok(cost, tokenCount); ok {
 			p := model.Dec(price)
 			rec.ListUnitPrice = &p
 			rec.ContractedUnitPrice = &p
@@ -288,20 +287,6 @@ func skuPriceDetails(bucket model.TokenBucket, d dims) map[string]any {
 	return details
 }
 
-func perMTok(tokens int64) string {
-	q := new(big.Rat).SetFrac(big.NewInt(tokens), big.NewInt(1_000_000))
-	return trimDecimal(q)
-}
-
-func unitPricePerMTok(cost string, tokens int64) (string, bool) {
-	c, ok := new(big.Rat).SetString(cost)
-	if !ok {
-		return "", false
-	}
-	price := new(big.Rat).Mul(c, big.NewRat(1_000_000, tokens))
-	return trimDecimal(price), true
-}
-
 func addDims(ext map[string]any, d dims) {
 	if d.serviceTier != "" {
 		ext["x_ServiceTier"] = d.serviceTier
@@ -330,16 +315,7 @@ func skuPriceID(m string, b model.TokenBucket) string {
 }
 
 func centsToDollars(cents *big.Rat) string {
-	return trimDecimal(new(big.Rat).Quo(cents, big.NewRat(100, 1)))
-}
-
-func trimDecimal(r *big.Rat) string {
-	s := r.FloatString(12)
-	if strings.Contains(s, ".") {
-		s = strings.TrimRight(s, "0")
-		s = strings.TrimRight(s, ".")
-	}
-	return s
+	return integrations.TrimDecimal(new(big.Rat).Quo(cents, big.NewRat(100, 1)))
 }
 
 func bucketDay(value string, start, end time.Time) (time.Time, bool) {
