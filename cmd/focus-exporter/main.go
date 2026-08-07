@@ -14,6 +14,7 @@ import (
 	"github.com/baselinehq/focus-exporter/pkg/focus"
 	"github.com/baselinehq/focus-exporter/pkg/integrations"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/anthropic"
+	"github.com/baselinehq/focus-exporter/pkg/integrations/openai"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/planetscale"
 	"github.com/baselinehq/focus-exporter/pkg/sink"
 )
@@ -37,8 +38,17 @@ func (s *stringSlice) Set(v string) error {
 func defaultRegistry() *integrations.Registry {
 	reg := integrations.NewRegistry()
 	reg.Register(planetscale.Name, planetscaleFactory)
-	reg.Register(anthropic.Name, anthropicFactory)
+	reg.RegisterWithCapabilities(anthropic.Name, anthropicFactory, integrations.Capabilities{RequiresTimeRange: true})
+	reg.RegisterWithCapabilities(openai.Name, openaiFactory, integrations.Capabilities{RequiresTimeRange: true})
 	return reg
+}
+
+func openaiFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	adminKey := env("OPENAI_ADMIN_KEY")
+	if adminKey == "" {
+		return nil, fmt.Errorf("missing OPENAI_ADMIN_KEY env")
+	}
+	return openai.New(get, adminKey, env("OPENAI_ORG_ID")), nil
 }
 
 func anthropicFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
@@ -90,8 +100,8 @@ func run(reg *integrations.Registry, args []string, env func(string) string, std
 
 	if windowStart.IsZero() {
 		for _, name := range providers {
-			if name == anthropic.Name {
-				return fmt.Errorf("provider %q requires an explicit window: pass --start/--end or --month", anthropic.Name)
+			if caps, ok := reg.Capabilities(name); ok && caps.RequiresTimeRange {
+				return fmt.Errorf("provider %q requires an explicit window: pass --start/--end or --month", name)
 			}
 		}
 	}
