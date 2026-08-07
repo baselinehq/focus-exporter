@@ -18,20 +18,34 @@ const (
 type UsageRecord struct {
 	Provider           string
 	ServiceName        string
-	ServiceCategory    string
-	ServiceSubcategory string
-	ChargeCategory     string
+	ServiceCategory    ServiceCategory
+	ServiceSubcategory ServiceSubcategory
+	ChargeCategory     ChargeCategory
 	ChargeDescription  string
 
 	Day         time.Time
 	PeriodStart *time.Time
 	PeriodEnd   *time.Time
 
-	Cost     *Decimal
-	Currency string
+	Cost           *Decimal
+	ContractedCost *Decimal
+	Currency       string
+
+	BillingAccountID   string
+	BillingAccountName string
+	Publisher          string
+	InvoiceIssuer      string
+	ChargeFrequency    ChargeFrequency
+	PricingCategory    PricingCategory
+	PricingCurrency    string
 
 	ConsumedQty  *Decimal
 	ConsumedUnit string
+
+	PricingQty          *Decimal
+	PricingUnit         string
+	ListUnitPrice       *Decimal
+	ContractedUnitPrice *Decimal
 
 	ResourceID   string
 	ResourceName string
@@ -39,9 +53,10 @@ type UsageRecord struct {
 	RegionID     string
 	RegionName   string
 
-	SkuID      string
-	SkuMeter   string
-	SkuPriceID string
+	SkuID           string
+	SkuMeter        string
+	SkuPriceID      string
+	SkuPriceDetails map[string]any
 
 	Extensions map[string]any
 }
