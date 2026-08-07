@@ -170,17 +170,17 @@ func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, start, e
 			continue
 		}
 		for _, r := range b.Results {
-			bucket, isToken := bucketForTokenType(r.TokenType)
-			if !isToken || r.Model == "" {
-				loose = append(loose, nonTokenCost(r, day, accountID, accountName))
-				continue
-			}
-			k := bucketKey{day, r.Model, bucket}
 			amt, ok := new(big.Rat).SetString(r.Amount)
 			if !ok {
 				log.Printf("anthropic: bad cost amount %q for %s/%s: skipping", r.Amount, r.Model, r.TokenType)
 				continue
 			}
+			bucket, isToken := bucketForTokenType(r.TokenType)
+			if !isToken || r.Model == "" {
+				loose = append(loose, nonTokenCost(r, day, accountID, accountName, amt))
+				continue
+			}
+			k := bucketKey{day, r.Model, bucket}
 			if costCents[k] == nil {
 				costCents[k] = new(big.Rat)
 			}
@@ -257,7 +257,7 @@ func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims, accountID, 
 	return rec
 }
 
-func nonTokenCost(r costResult, day time.Time, accountID, accountName string) model.UsageRecord {
+func nonTokenCost(r costResult, day time.Time, accountID, accountName string, amt *big.Rat) model.UsageRecord {
 	rec := baseRecord(accountID, accountName)
 	rec.ServiceName = r.Model
 	if rec.ServiceName == "" {
@@ -268,10 +268,8 @@ func nonTokenCost(r costResult, day time.Time, accountID, accountName string) mo
 	rec.SkuMeter = r.CostType
 	rec.Extensions = map[string]any{}
 
-	if amt, ok := new(big.Rat).SetString(r.Amount); ok {
-		c := model.Dec(centsToDollars(amt))
-		rec.Cost = &c
-	}
+	c := model.Dec(centsToDollars(amt))
+	rec.Cost = &c
 	addDims(rec.Extensions, dims{r.ServiceTier, r.ContextWindow})
 	if len(rec.Extensions) == 0 {
 		rec.Extensions = nil

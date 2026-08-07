@@ -12,7 +12,8 @@
         {"amount": "100", "currency": "USD", "cost_type": "tokens", "token_type": "uncached_input_tokens", "model": "claude-haiku-4", "description": "Haiku Input"},
         {"amount": "500", "currency": "USD", "cost_type": "tokens", "token_type": "output_tokens", "model": "claude-haiku-4", "description": "Haiku Output"},
         {"amount": "999", "currency": "USD", "cost_type": "tokens", "token_type": "uncached_input_tokens", "model": "claude-sonnet-4", "description": "Sonnet Input (no usage)"},
-        {"amount": "250", "currency": "USD", "cost_type": "web_search", "token_type": null, "model": null, "description": "Web search requests"}
+        {"amount": "250", "currency": "USD", "cost_type": "web_search", "token_type": null, "model": null, "description": "Web search requests"},
+        {"amount": "not-a-number", "currency": "USD", "cost_type": "session_usage", "token_type": null, "model": null, "description": "Malformed row"}
       ]
     }
   ],

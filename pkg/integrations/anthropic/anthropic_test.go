@@ -130,6 +130,14 @@ func TestFetch(t *testing.T) {
 		}
 	})
 
+	t.Run("malformed non-token cost row is skipped", func(t *testing.T) {
+		for _, r := range recs {
+			if r.SkuMeter == "session_usage" {
+				t.Fatalf("malformed cost row must be skipped, got %+v", r)
+			}
+		}
+	})
+
 	t.Run("cache_creation dims merged across split rows", func(t *testing.T) {
 		r, ok := find(recs, "claude-opus-4-6", model.BucketCacheCreation)
 		if !ok {
