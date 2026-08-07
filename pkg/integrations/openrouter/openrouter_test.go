@@ -57,8 +57,8 @@ func TestFetch(t *testing.T) {
 		if r.Provider != "OpenRouter" || r.ServiceCategory != model.ServiceCategoryAIAndMachineLearning {
 			t.Fatalf("focus identity: %+v", r)
 		}
-		if r.Cost == nil || string(*r.Cost) != "12.5" {
-			t.Fatalf("cost = %v, want 12.5 (real credit spend)", r.Cost)
+		if r.Cost == nil || string(*r.Cost) != "12.0" {
+			t.Fatalf("cost = %v, want 12.0 (real credit spend)", r.Cost)
 		}
 		if r.SkuMeter != "OpenAI" || r.SkuPriceID != "openai/gpt-4.1|OpenAI" {
 			t.Fatalf("sku (upstream provider): %+v", r)
@@ -66,7 +66,13 @@ func TestFetch(t *testing.T) {
 		if r.ConsumedQty == nil || string(*r.ConsumedQty) != "60000" {
 			t.Fatalf("consumed qty = %v, want 60000 (prompt+completion)", r.ConsumedQty)
 		}
-		if r.Extensions["x_UpstreamProvider"] != "OpenAI" || r.Extensions["x_PromptTokens"] != int64(50000) || r.Extensions["x_ModelRequests"] != int64(100) {
+		if r.PricingQty == nil || string(*r.PricingQty) != "0.06" || r.PricingUnit != "1M tokens" {
+			t.Fatalf("pricing quantity: %v %q", r.PricingQty, r.PricingUnit)
+		}
+		if r.ListUnitPrice == nil || string(*r.ListUnitPrice) != "200" {
+			t.Fatalf("blended unit price = %v, want 200 ($12 / 0.06 MTok)", r.ListUnitPrice)
+		}
+		if r.Extensions["x_UpstreamProvider"] != "OpenAI" || r.Extensions["x_PromptTokens"] != int64(50000) || r.Extensions["x_ModelRequests"] != int64(100) || r.Extensions["x_EndpointId"] != "ep-1" {
 			t.Fatalf("extensions: %+v", r.Extensions)
 		}
 		if _, ok := r.Extensions["x_ByokUsage"]; ok {
@@ -87,6 +93,9 @@ func TestFetch(t *testing.T) {
 		}
 		if r.Extensions["x_ReasoningTokens"] != int64(500) {
 			t.Fatalf("x_ReasoningTokens: %+v", r.Extensions)
+		}
+		if r.Extensions["x_ByokRequests"] != int64(5) {
+			t.Fatalf("x_ByokRequests: %+v", r.Extensions)
 		}
 	})
 }

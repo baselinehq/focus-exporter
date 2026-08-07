@@ -36,6 +36,8 @@ completed UTC days are available**; days outside that window return no data.
 | `BillingCurrency` / `PricingCurrency` | `USD` (credits are USD) |
 | `ChargePeriodStart` / `ChargePeriodEnd` | the day |
 | `ConsumedQuantity` / `ConsumedUnit` | `prompt_tokens + completion_tokens` / `tokens` |
+| `PricingQuantity` / `PricingUnit` | tokens / 1e6, `1M tokens` |
+| `ListUnitPrice` / `ContractedUnitPrice` | `usage` / (tokens / 1e6) - blended per-MTok rate |
 | `ServiceName`, `SkuId`, `ResourceId`/`Name` | `model` |
 | `Provider` / `Publisher` / `InvoiceIssuer` | `OpenRouter` |
 | `ServiceCategory` / `ServiceSubcategory` | `AI and Machine Learning` / `Generative AI` |
@@ -44,7 +46,8 @@ completed UTC days are available**; days outside that window return no data.
 | `x_PromptTokens` / `x_CompletionTokens` / `x_ReasoningTokens` | token counts |
 | `x_ModelRequests` | `requests` |
 | `x_ModelPermaslug` | `model_permaslug` |
-| `x_ByokUsage` | `byok_usage_inference` (see below) |
+| `x_EndpointId` | `endpoint_id` |
+| `x_ByokUsage` / `x_ByokRequests` | `byok_usage_inference` / `byok_requests` (see below) |
 
 ## Example
 

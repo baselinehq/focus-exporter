@@ -1,6 +1,6 @@
 {
   "data": [
-    {"date": "2026-07-01", "model": "openai/gpt-4.1", "model_permaslug": "openai/gpt-4.1-2025-04-14", "provider_name": "OpenAI", "usage": 12.5, "byok_usage_inference": 0, "requests": 100, "prompt_tokens": 50000, "completion_tokens": 10000, "reasoning_tokens": 0},
-    {"date": "2026-07-01", "model": "anthropic/claude-sonnet-4.5", "model_permaslug": "anthropic/claude-sonnet-4.5", "provider_name": "Anthropic", "usage": 3.25, "byok_usage_inference": 1.10, "requests": 20, "prompt_tokens": 8000, "completion_tokens": 2000, "reasoning_tokens": 500}
+    {"date": "2026-07-01 00:00:00", "model": "openai/gpt-4.1", "model_permaslug": "openai/gpt-4.1-2025-04-14", "endpoint_id": "ep-1", "provider_name": "OpenAI", "usage": 12.0, "byok_usage_inference": 0, "requests": 100, "byok_requests": 0, "prompt_tokens": 50000, "completion_tokens": 10000, "reasoning_tokens": 0},
+    {"date": "2026-07-01 00:00:00", "model": "anthropic/claude-sonnet-4.5", "model_permaslug": "anthropic/claude-sonnet-4.5", "endpoint_id": "ep-2", "provider_name": "Anthropic", "usage": 3.25, "byok_usage_inference": 1.10, "requests": 20, "byok_requests": 5, "prompt_tokens": 8000, "completion_tokens": 2000, "reasoning_tokens": 500}
   ]
 }

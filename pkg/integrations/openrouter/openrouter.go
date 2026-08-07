@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/baselinehq/focus-exporter/pkg/integrations"
@@ -40,10 +42,12 @@ type activityItem struct {
 	Date             string      `json:"date"`
 	Model            string      `json:"model"`
 	ModelPermaslug   string      `json:"model_permaslug"`
+	EndpointID       string      `json:"endpoint_id"`
 	ProviderName     string      `json:"provider_name"`
 	Usage            json.Number `json:"usage"`
 	BYOKUsage        json.Number `json:"byok_usage_inference"`
 	Requests         int64       `json:"requests"`
+	ByokRequests     int64       `json:"byok_requests"`
 	PromptTokens     int64       `json:"prompt_tokens"`
 	CompletionTokens int64       `json:"completion_tokens"`
 	ReasoningTokens  int64       `json:"reasoning_tokens"`
@@ -104,11 +108,25 @@ func (s *source) toRecord(item activityItem, day time.Time) model.UsageRecord {
 		q := model.Dec(strconv.FormatInt(total, 10))
 		rec.ConsumedQty = &q
 		rec.ConsumedUnit = "tokens"
+		mtok := model.Dec(perMTok(total))
+		rec.PricingQty = &mtok
+		rec.PricingUnit = "1M tokens"
+		if price, ok := unitPricePerMTok(item.Usage, total); ok {
+			p := model.Dec(price)
+			rec.ListUnitPrice = &p
+			rec.ContractedUnitPrice = &p
+		}
 	}
 
 	rec.Extensions = map[string]any{"x_UpstreamProvider": item.ProviderName}
 	if item.ModelPermaslug != "" {
 		rec.Extensions["x_ModelPermaslug"] = item.ModelPermaslug
+	}
+	if item.EndpointID != "" {
+		rec.Extensions["x_EndpointId"] = item.EndpointID
+	}
+	if item.ByokRequests > 0 {
+		rec.Extensions["x_ByokRequests"] = item.ByokRequests
 	}
 	if item.PromptTokens > 0 {
 		rec.Extensions["x_PromptTokens"] = item.PromptTokens
@@ -133,6 +151,26 @@ func numberOrZero(n json.Number) string {
 		return "0"
 	}
 	return n.String()
+}
+
+func perMTok(tokens int64) string {
+	return trimDecimal(new(big.Rat).SetFrac(big.NewInt(tokens), big.NewInt(1_000_000)))
+}
+
+func unitPricePerMTok(usage json.Number, tokens int64) (string, bool) {
+	c, ok := new(big.Rat).SetString(usage.String())
+	if !ok || c.Sign() == 0 || tokens == 0 {
+		return "", false
+	}
+	return trimDecimal(new(big.Rat).Mul(c, big.NewRat(1_000_000, tokens))), true
+}
+
+func trimDecimal(r *big.Rat) string {
+	s := r.FloatString(12)
+	if strings.Contains(s, ".") {
+		s = strings.TrimRight(strings.TrimRight(s, "0"), ".")
+	}
+	return s
 }
 
 func nonZero(n json.Number) bool {
