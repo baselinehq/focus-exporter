@@ -12,7 +12,7 @@ Provider name (for `--provider`): `anthropic`
 | Variable | Required | Description |
 | --- | --- | --- |
 | `ANTHROPIC_ADMIN_KEY` | yes | An Admin API key (`sk-ant-admin...`). Only an organization admin can create one. Treat it as a credential; never commit it. |
-| `ANTHROPIC_ORG_ID` | no | Sets `BillingAccountId` on every record. The reports carry no org identifier, so provide it here if you want the column populated. |
+| `ANTHROPIC_ORG_ID` | no | Overrides `BillingAccountId`. Normally the org id and name are resolved automatically from `GET /v1/organizations/me`; set this only to force a different value. |
 
 The key is sent as the `x-api-key` header, with `anthropic-version: 2023-06-01`.
 
@@ -32,6 +32,7 @@ Base URL: `https://api.anthropic.com`
 
 | Endpoint | Purpose |
 | --- | --- |
+| `GET /v1/organizations/me` | Organization id and name, for `BillingAccountId` / `BillingAccountName`. |
 | `GET /v1/organizations/cost_report` | Billed cost per day, grouped by `description` (carries `model`, `token_type`, `amount`, `service_tier`, `context_window`). |
 | `GET /v1/organizations/usage_report/messages` | Token counts per day, grouped by `model`. |
 
@@ -70,7 +71,7 @@ the two cache-creation token types are summed into one `cache_creation` bucket:
 | `PricingCategory`, `PricingCurrency` | `Standard`, `USD` |
 | `PricingQuantity` / `PricingUnit` | tokens / 1e6, `1M tokens` |
 | `ListUnitPrice` / `ContractedUnitPrice` | cost / (tokens / 1e6), the per-MTok rate |
-| `BillingAccountId` | `ANTHROPIC_ORG_ID` env, when set (the reports carry no org id) |
+| `BillingAccountId` / `BillingAccountName` | org id / name from `GET /v1/organizations/me` (override the id with `ANTHROPIC_ORG_ID`) |
 | `x_TokenType` | token bucket |
 | `x_ServiceTier` / `x_ContextWindow` / `x_InferenceGeo` | cost/usage row dimensions, when present |
 

@@ -13,7 +13,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ResourceId`/`ResourceName` are now populated. The Anthropic adapter also emits
   derived per-MTok pricing (`PricingQuantity`, `PricingUnit`, `ListUnitPrice`,
   `ContractedUnitPrice` - a blended effective rate when a day mixes tiers),
-  `SkuPriceDetails`, and `BillingAccountId` from `ANTHROPIC_ORG_ID`.
+  `SkuPriceDetails`, and `BillingAccountId`/`BillingAccountName` resolved
+  automatically from `GET /v1/organizations/me` (override the id with
+  `ANTHROPIC_ORG_ID`).
 - Typed FOCUS enums in `pkg/model` (`ChargeCategory`, `ChargeFrequency`,
   `PricingCategory`, `ServiceCategory`, `ServiceSubcategory`) with `Valid()`
   checks, so adapters emit spec-conformant values instead of raw strings.

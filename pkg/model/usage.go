@@ -31,12 +31,13 @@ type UsageRecord struct {
 	ContractedCost *Decimal
 	Currency       string
 
-	BillingAccountID string
-	Publisher        string
-	InvoiceIssuer    string
-	ChargeFrequency  ChargeFrequency
-	PricingCategory  PricingCategory
-	PricingCurrency  string
+	BillingAccountID   string
+	BillingAccountName string
+	Publisher          string
+	InvoiceIssuer      string
+	ChargeFrequency    ChargeFrequency
+	PricingCategory    PricingCategory
+	PricingCurrency    string
 
 	ConsumedQty  *Decimal
 	ConsumedUnit string

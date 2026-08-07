@@ -57,6 +57,7 @@ func FromUsage(u model.UsageRecord) Record {
 	r.SkuPriceId = optional(u.SkuPriceID)
 
 	r.BillingAccountId = u.BillingAccountID
+	r.BillingAccountName = optional(u.BillingAccountName)
 	r.Publisher = optional(u.Publisher)
 	r.InvoiceIssuer = optional(u.InvoiceIssuer)
 	r.ChargeFrequency = optional(string(u.ChargeFrequency))

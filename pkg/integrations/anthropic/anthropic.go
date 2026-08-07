@@ -74,6 +74,16 @@ type costResult struct {
 }
 
 func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.UsageRecord, error) {
+	accountID, accountName := s.accountID, ""
+	if org, err := s.fetchOrg(ctx); err != nil {
+		log.Printf("anthropic: could not resolve organization identity: %v", err)
+	} else {
+		accountName = org.Name
+		if accountID == "" {
+			accountID = org.ID
+		}
+	}
+
 	usage, err := fetchAll[usageResult](ctx, s, []string{"organizations", "usage_report", "messages"}, "model", start, end)
 	if err != nil {
 		return nil, err
@@ -84,7 +94,25 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 	}
 
 	tokens, meta := indexUsage(usage, start, end)
-	return join(costs, tokens, meta, start, end, s.accountID), nil
+	return join(costs, tokens, meta, start, end, accountID, accountName), nil
+}
+
+type orgResult struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (s *source) fetchOrg(ctx context.Context) (orgResult, error) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return orgResult{}, err
+	}
+	u = u.JoinPath("v1", "organizations", "me")
+	var org orgResult
+	if err := s.getJSON(ctx, u.String(), &org); err != nil {
+		return orgResult{}, err
+	}
+	return org, nil
 }
 
 type bucketKey struct {
@@ -128,7 +156,7 @@ func indexUsage(buckets []timeBucket[usageResult], start, end time.Time) (map[bu
 	return tokens, meta
 }
 
-func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map[bucketKey]dims, start, end time.Time, accountID string) []model.UsageRecord {
+func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map[bucketKey]dims, start, end time.Time, accountID, accountName string) []model.UsageRecord {
 	out := []model.UsageRecord{}
 	costCents := map[bucketKey]*big.Rat{}
 	costMeta := map[bucketKey]dims{}
@@ -142,7 +170,7 @@ func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map
 		for _, r := range b.Results {
 			bucket, isToken := bucketForTokenType(r.TokenType)
 			if !isToken || r.Model == "" {
-				loose = append(loose, nonTokenCost(r, day, accountID))
+				loose = append(loose, nonTokenCost(r, day, accountID, accountName))
 				continue
 			}
 			k := bucketKey{day, r.Model, bucket}
@@ -166,19 +194,20 @@ func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map
 		if isZeroDims(d) {
 			d = meta[k]
 		}
-		out = append(out, tokenRecord(k, centsToDollars(cents), tokens[k], d, accountID))
+		out = append(out, tokenRecord(k, centsToDollars(cents), tokens[k], d, accountID, accountName))
 	}
 	for k, n := range tokens {
 		if seen[k] {
 			continue
 		}
-		out = append(out, tokenRecord(k, "", n, meta[k], accountID))
+		out = append(out, tokenRecord(k, "", n, meta[k], accountID, accountName))
 	}
 	return append(out, loose...)
 }
 
-func baseRecord(accountID string) model.UsageRecord {
+func baseRecord(accountID, accountName string) model.UsageRecord {
 	return model.UsageRecord{
+		BillingAccountName: accountName,
 		Provider:           "Anthropic",
 		Publisher:          "Anthropic",
 		InvoiceIssuer:      "Anthropic",
@@ -193,8 +222,8 @@ func baseRecord(accountID string) model.UsageRecord {
 	}
 }
 
-func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims, accountID string) model.UsageRecord {
-	rec := baseRecord(accountID)
+func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims, accountID, accountName string) model.UsageRecord {
+	rec := baseRecord(accountID, accountName)
 	rec.ServiceName = k.model
 	rec.Day = k.day
 	rec.ResourceID = k.model
@@ -230,8 +259,8 @@ func tokenRecord(k bucketKey, cost string, tokenCount int64, d dims, accountID s
 	return rec
 }
 
-func nonTokenCost(r costResult, day time.Time, accountID string) model.UsageRecord {
-	rec := baseRecord(accountID)
+func nonTokenCost(r costResult, day time.Time, accountID, accountName string) model.UsageRecord {
+	rec := baseRecord(accountID, accountName)
 	rec.ServiceName = r.Model
 	if rec.ServiceName == "" {
 		rec.ServiceName = "Anthropic"

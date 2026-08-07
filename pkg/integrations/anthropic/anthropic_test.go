@@ -25,6 +25,9 @@ func fixtureGet(t *testing.T) integrations.HTTPGet {
 		if h["x-api-key"] != "admin-key" || h["anthropic-version"] != anthropicVersion {
 			t.Fatalf("bad auth headers: %v", h)
 		}
+		if strings.Contains(u, "organizations/me") {
+			return []byte(`{"id":"acct-fetched","type":"organization","name":"Acme Org"}`), nil
+		}
 		if strings.Contains(u, "usage_report/messages") {
 			return usage, nil
 		}
@@ -49,7 +52,7 @@ func TestFetch(t *testing.T) {
 	start := time.Date(2025, 8, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2025, 8, 2, 0, 0, 0, 0, time.UTC)
 
-	recs, err := New(fixtureGet(t), "admin-key", "org-abc").Fetch(context.Background(), start, end)
+	recs, err := New(fixtureGet(t), "admin-key", "").Fetch(context.Background(), start, end)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,8 +132,8 @@ func TestFetch(t *testing.T) {
 
 	t.Run("focus enrichment fields populated", func(t *testing.T) {
 		r, _ := find(recs, "claude-opus-4-6", model.BucketInput)
-		if r.BillingAccountID != "org-abc" {
-			t.Fatalf("billing account id: %q", r.BillingAccountID)
+		if r.BillingAccountID != "acct-fetched" || r.BillingAccountName != "Acme Org" {
+			t.Fatalf("billing account fetched from /organizations/me: id=%q name=%q", r.BillingAccountID, r.BillingAccountName)
 		}
 		if r.Publisher != "Anthropic" || r.InvoiceIssuer != "Anthropic" {
 			t.Fatalf("publisher/issuer: %+v", r)
