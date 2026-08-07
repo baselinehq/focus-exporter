@@ -13,6 +13,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   SKU), invoice-cost shape. Basic auth; `metadata.next` pagination; promo/negative
   lines flagged as `Credit`. Registered as `--provider confluent`
   (env `CONFLUENT_CLOUD_API_KEY` / `CONFLUENT_CLOUD_API_SECRET`).
+- OpenRouter adapter (LLM gateway): one FOCUS 1.2 record per (day, model, upstream
+  provider) from the `/api/v1/activity` API, with real credit spend (USD) as
+  `BilledCost` and token counts as `x_` extensions. One integration captures spend
+  across every model/provider routed through the gateway. `byok_usage_inference`
+  is kept out of `BilledCost` (carried as `x_ByokUsage`) to avoid double-counting.
+  Requires a management key; iterates the window day by day (30-day API cap) and
+  skips out-of-window days. Registered as `--provider openrouter`
+  (env `OPENROUTER_MANAGEMENT_KEY`).
 - OpenAI adapter: token records per (day, model, bucket) from the
   `usage/completions` Admin API and separate line-item cost records (real dollars)
   from `costs`. Cost and token detail are separate grains because the adapter

@@ -16,6 +16,7 @@ import (
 	"github.com/baselinehq/focus-exporter/pkg/integrations/anthropic"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/confluent"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/openai"
+	"github.com/baselinehq/focus-exporter/pkg/integrations/openrouter"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/planetscale"
 	"github.com/baselinehq/focus-exporter/pkg/sink"
 )
@@ -42,6 +43,7 @@ func defaultRegistry() *integrations.Registry {
 	reg.RegisterWithCapabilities(anthropic.Name, anthropicFactory, integrations.Capabilities{RequiresTimeRange: true})
 	reg.RegisterWithCapabilities(openai.Name, openaiFactory, integrations.Capabilities{RequiresTimeRange: true})
 	reg.RegisterWithCapabilities(confluent.Name, confluentFactory, integrations.Capabilities{RequiresTimeRange: true})
+	reg.RegisterWithCapabilities(openrouter.Name, openrouterFactory, integrations.Capabilities{RequiresTimeRange: true})
 	return reg
 }
 
@@ -52,6 +54,14 @@ func confluentFactory(get integrations.HTTPGet, env func(string) string) (integr
 		return nil, fmt.Errorf("missing CONFLUENT_CLOUD_API_KEY / CONFLUENT_CLOUD_API_SECRET env")
 	}
 	return confluent.New(get, keyID, secret, env("CONFLUENT_ORG_ID")), nil
+}
+
+func openrouterFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	key := env("OPENROUTER_MANAGEMENT_KEY")
+	if key == "" {
+		return nil, fmt.Errorf("missing OPENROUTER_MANAGEMENT_KEY env")
+	}
+	return openrouter.New(get, key, env("OPENROUTER_ORG_ID")), nil
 }
 
 func openaiFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {

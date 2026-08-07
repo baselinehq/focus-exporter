@@ -14,6 +14,7 @@ run an export.
 | Anthropic | AI model cost | Admin API key | [anthropic.md](anthropic.md) |
 | OpenAI | AI model cost | Admin API key | [openai.md](openai.md) |
 | Confluent Cloud | Event streaming (Kafka) | Cloud API key | [confluent.md](confluent.md) |
+| OpenRouter | AI gateway (multi-provider) | Management key | [openrouter.md](openrouter.md) |
 
 ## Documenting a new provider
 
