@@ -56,9 +56,6 @@ type usageResult struct {
 		Ephemeral1h int64 `json:"ephemeral_1h_input_tokens"`
 		Ephemeral5m int64 `json:"ephemeral_5m_input_tokens"`
 	} `json:"cache_creation"`
-	ServiceTier   string `json:"service_tier"`
-	ContextWindow string `json:"context_window"`
-	InferenceGeo  string `json:"inference_geo"`
 }
 
 type costResult struct {
@@ -70,7 +67,6 @@ type costResult struct {
 	Description   string `json:"description"`
 	ServiceTier   string `json:"service_tier"`
 	ContextWindow string `json:"context_window"`
-	InferenceGeo  string `json:"inference_geo"`
 }
 
 func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.UsageRecord, error) {
@@ -93,8 +89,8 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 		return nil, err
 	}
 
-	tokens, meta := indexUsage(usage, start, end)
-	return join(costs, tokens, meta, start, end, accountID, accountName), nil
+	tokens := indexUsage(usage, start, end)
+	return join(costs, tokens, start, end, accountID, accountName), nil
 }
 
 type orgResult struct {
@@ -124,12 +120,20 @@ type bucketKey struct {
 type dims struct {
 	serviceTier   string
 	contextWindow string
-	inferenceGeo  string
 }
 
-func indexUsage(buckets []timeBucket[usageResult], start, end time.Time) (map[bucketKey]int64, map[bucketKey]dims) {
+func (d dims) merge(other dims) dims {
+	if d.serviceTier == "" {
+		d.serviceTier = other.serviceTier
+	}
+	if d.contextWindow == "" {
+		d.contextWindow = other.contextWindow
+	}
+	return d
+}
+
+func indexUsage(buckets []timeBucket[usageResult], start, end time.Time) map[bucketKey]int64 {
 	tokens := map[bucketKey]int64{}
-	meta := map[bucketKey]dims{}
 	for _, b := range buckets {
 		day, ok := bucketDay(b.StartingAt, start, end)
 		if !ok {
@@ -143,9 +147,7 @@ func indexUsage(buckets []timeBucket[usageResult], start, end time.Time) (map[bu
 				if n == 0 {
 					return
 				}
-				k := bucketKey{day, r.Model, bucket}
-				tokens[k] += n
-				meta[k] = dims{r.ServiceTier, r.ContextWindow, r.InferenceGeo}
+				tokens[bucketKey{day, r.Model, bucket}] += n
 			}
 			add(model.BucketInput, r.UncachedInputTokens)
 			add(model.BucketOutput, r.OutputTokens)
@@ -153,10 +155,10 @@ func indexUsage(buckets []timeBucket[usageResult], start, end time.Time) (map[bu
 			add(model.BucketCacheCreation, r.CacheCreation.Ephemeral1h+r.CacheCreation.Ephemeral5m)
 		}
 	}
-	return tokens, meta
+	return tokens
 }
 
-func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map[bucketKey]dims, start, end time.Time, accountID, accountName string) []model.UsageRecord {
+func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, start, end time.Time, accountID, accountName string) []model.UsageRecord {
 	out := []model.UsageRecord{}
 	costCents := map[bucketKey]*big.Rat{}
 	costMeta := map[bucketKey]dims{}
@@ -183,24 +185,20 @@ func join(buckets []timeBucket[costResult], tokens map[bucketKey]int64, meta map
 				costCents[k] = new(big.Rat)
 			}
 			costCents[k].Add(costCents[k], amt)
-			costMeta[k] = dims{r.ServiceTier, r.ContextWindow, r.InferenceGeo}
+			costMeta[k] = costMeta[k].merge(dims{r.ServiceTier, r.ContextWindow})
 		}
 	}
 
 	seen := map[bucketKey]bool{}
 	for k, cents := range costCents {
 		seen[k] = true
-		d := costMeta[k]
-		if isZeroDims(d) {
-			d = meta[k]
-		}
-		out = append(out, tokenRecord(k, centsToDollars(cents), tokens[k], d, accountID, accountName))
+		out = append(out, tokenRecord(k, centsToDollars(cents), tokens[k], costMeta[k], accountID, accountName))
 	}
 	for k, n := range tokens {
 		if seen[k] {
 			continue
 		}
-		out = append(out, tokenRecord(k, "", n, meta[k], accountID, accountName))
+		out = append(out, tokenRecord(k, "", n, dims{}, accountID, accountName))
 	}
 	return append(out, loose...)
 }
@@ -274,7 +272,7 @@ func nonTokenCost(r costResult, day time.Time, accountID, accountName string) mo
 		c := model.Dec(centsToDollars(amt))
 		rec.Cost = &c
 	}
-	addDims(rec.Extensions, dims{r.ServiceTier, r.ContextWindow, r.InferenceGeo})
+	addDims(rec.Extensions, dims{r.ServiceTier, r.ContextWindow})
 	if len(rec.Extensions) == 0 {
 		rec.Extensions = nil
 	}
@@ -288,9 +286,6 @@ func skuPriceDetails(bucket model.TokenBucket, d dims) map[string]any {
 	}
 	if d.contextWindow != "" {
 		details["context_window"] = d.contextWindow
-	}
-	if d.inferenceGeo != "" {
-		details["inference_geo"] = d.inferenceGeo
 	}
 	return details
 }
@@ -316,12 +311,7 @@ func addDims(ext map[string]any, d dims) {
 	if d.contextWindow != "" {
 		ext["x_ContextWindow"] = d.contextWindow
 	}
-	if d.inferenceGeo != "" {
-		ext["x_InferenceGeo"] = d.inferenceGeo
-	}
 }
-
-func isZeroDims(d dims) bool { return d == dims{} }
 
 func bucketForTokenType(tt string) (model.TokenBucket, bool) {
 	switch tt {

@@ -88,6 +88,14 @@ func run(reg *integrations.Registry, args []string, env func(string) string, std
 		return err
 	}
 
+	if windowStart.IsZero() {
+		for _, name := range providers {
+			if name == anthropic.Name {
+				return fmt.Errorf("provider %q requires an explicit window: pass --start/--end or --month", anthropic.Name)
+			}
+		}
+	}
+
 	get := newHTTPGet(30 * time.Second)
 	ctx := context.Background()
 

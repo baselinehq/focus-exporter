@@ -130,6 +130,16 @@ func TestFetch(t *testing.T) {
 		}
 	})
 
+	t.Run("cache_creation dims merged across split rows", func(t *testing.T) {
+		r, ok := find(recs, "claude-opus-4-6", model.BucketCacheCreation)
+		if !ok {
+			t.Fatal("cache_creation record missing")
+		}
+		if r.Extensions["x_ServiceTier"] != "priority" {
+			t.Fatalf("merge must keep the 1h row's tier even though the 5m row omits it: %+v", r.Extensions)
+		}
+	})
+
 	t.Run("focus enrichment fields populated", func(t *testing.T) {
 		r, _ := find(recs, "claude-opus-4-6", model.BucketInput)
 		if r.BillingAccountID != "acct-fetched" || r.BillingAccountName != "Acme Org" {

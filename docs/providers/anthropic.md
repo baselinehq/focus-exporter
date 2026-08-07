@@ -22,6 +22,11 @@ Admin API keys are created in the Anthropic Console under **Settings ->
 Admin keys** by an organization admin. They are distinct from regular API keys
 and grant read access to organization-wide usage and cost.
 
+This adapter supports **Claude Console** organizations, which expose the Usage
+and Cost Admin API. Claude Enterprise (claude.ai) organizations are **not**
+supported: they use the separate Analytics API and an Analytics API key, and an
+admin key will not authenticate against those endpoints.
+
 ```bash
 export ANTHROPIC_ADMIN_KEY=sk-ant-admin...
 ```
@@ -64,7 +69,7 @@ the two cache-creation token types are summed into one `cache_creation` bucket:
 | `ResourceType` | `Model` |
 | `SkuMeter` | token bucket |
 | `SkuPriceId` | `model\|bucket` |
-| `SkuPriceDetails` | JSON of `token_type` / `service_tier` / `context_window` / `inference_geo` |
+| `SkuPriceDetails` | JSON of `token_type` / `service_tier` / `context_window` |
 | `ContractedCost` | same as `EffectiveCost` (no separate negotiated rate) |
 | `Publisher`, `InvoiceIssuer` | `Anthropic` |
 | `ChargeFrequency` | `Usage-Based` |
@@ -73,7 +78,7 @@ the two cache-creation token types are summed into one `cache_creation` bucket:
 | `ListUnitPrice` / `ContractedUnitPrice` | cost / (tokens / 1e6), the per-MTok rate |
 | `BillingAccountId` / `BillingAccountName` | org id / name from `GET /v1/organizations/me` (override the id with `ANTHROPIC_ORG_ID`) |
 | `x_TokenType` | token bucket |
-| `x_ServiceTier` / `x_ContextWindow` / `x_InferenceGeo` | cost/usage row dimensions, when present |
+| `x_ServiceTier` / `x_ContextWindow` | cost-row dimensions, when present |
 
 ## Example
 
@@ -123,4 +128,9 @@ Representative record:
   as their own records keyed by `cost_type`, with the provider's description and
   no token quantity.
 - **Cost without matching usage** (or usage without cost) is still emitted, not
-  dropped.
+  dropped. In particular, Priority Tier (`service_tier=priority`) usage is
+  reported by the usage API but **not** by the cost API, so those records are
+  emitted with `BilledCost` unset. An unset cost is not a zero-cost result.
+- **`inference_geo` is not emitted.** The cost report cannot group by it and the
+  usage report is grouped by model, so the API returns it as null; the column is
+  omitted rather than always-empty.

@@ -166,6 +166,11 @@ func TestRun(t *testing.T) {
 			args:    []string{"--provider", "good", "--start", "2026-07-10", "--end", "2026-07-01"},
 			wantErr: "--end must be after --start",
 		},
+		{
+			name:    "anthropic requires explicit window",
+			args:    []string{"--provider", "anthropic"},
+			wantErr: "requires an explicit window",
+		},
 	}
 
 	for _, tc := range cases {

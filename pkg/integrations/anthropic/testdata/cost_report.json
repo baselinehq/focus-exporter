@@ -7,7 +7,7 @@
         {"amount": "300", "currency": "USD", "cost_type": "tokens", "token_type": "uncached_input_tokens", "model": "claude-opus-4-6", "description": "Opus Input", "service_tier": "standard", "context_window": "0-200k", "inference_geo": "global"},
         {"amount": "750", "currency": "USD", "cost_type": "tokens", "token_type": "output_tokens", "model": "claude-opus-4-6", "description": "Opus Output"},
         {"amount": "30", "currency": "USD", "cost_type": "tokens", "token_type": "cache_read_input_tokens", "model": "claude-opus-4-6", "description": "Opus Cache Read"},
-        {"amount": "120", "currency": "USD", "cost_type": "tokens", "token_type": "cache_creation.ephemeral_1h_input_tokens", "model": "claude-opus-4-6", "description": "Opus Cache 1h"},
+        {"amount": "120", "currency": "USD", "cost_type": "tokens", "token_type": "cache_creation.ephemeral_1h_input_tokens", "model": "claude-opus-4-6", "description": "Opus Cache 1h", "service_tier": "priority"},
         {"amount": "60", "currency": "USD", "cost_type": "tokens", "token_type": "cache_creation.ephemeral_5m_input_tokens", "model": "claude-opus-4-6", "description": "Opus Cache 5m"},
         {"amount": "100", "currency": "USD", "cost_type": "tokens", "token_type": "uncached_input_tokens", "model": "claude-haiku-4", "description": "Haiku Input"},
         {"amount": "500", "currency": "USD", "cost_type": "tokens", "token_type": "output_tokens", "model": "claude-haiku-4", "description": "Haiku Output"},
