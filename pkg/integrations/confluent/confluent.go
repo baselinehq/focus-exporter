@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/url"
 	"strconv"
 	"strings"
@@ -99,6 +100,10 @@ func (s *source) toRecord(c costItem) (model.UsageRecord, bool) {
 	periodEnd, err := parseDate(c.EndDate)
 	if err != nil {
 		log.Printf("confluent: skipping cost %q: invalid end_date %q", c.ID, c.EndDate)
+		return model.UsageRecord{}, false
+	}
+	if _, ok := new(big.Rat).SetString(c.Amount.String()); !ok {
+		log.Printf("confluent: skipping cost %q: invalid amount %q", c.ID, c.Amount)
 		return model.UsageRecord{}, false
 	}
 
