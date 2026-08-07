@@ -9,8 +9,10 @@ emits two kinds of record:
 - **Cost records** - one per (day, cost line item) from `costs`, carrying real
   billed `BilledCost` in dollars but no token quantity.
 
-They are not joined because the cost endpoint only groups by `line_item` (a
-coarse product bucket like `"gpt-4o, input"` or `"Image models"`), not by model.
+They are not joined because this adapter requests **`group_by[]=line_item`** for
+cost (a coarse product bucket like `"gpt-4o, input"` or `"Image models"`). The
+cost endpoint can also group by `project_id` and `api_key_id`, but not by model,
+so line-item cost cannot be attributed to a specific model or token bucket.
 
 Provider name (for `--provider`): `openai`
 
@@ -53,9 +55,15 @@ Token buckets from the usage report:
 
 | OpenAI usage field | FOCUS bucket (`SkuMeter`) |
 | --- | --- |
-| `input_uncached_tokens` (or `input_tokens - input_cached_tokens`) | `input` |
+| `input_uncached_tokens` (fallback `input_tokens - input_cached_tokens - input_cache_write_tokens`) | `input` |
 | `input_cached_tokens` | `cache_read` |
+| `input_cache_write_tokens` | `cache_creation` |
 | `output_tokens` | `output` |
+
+`input_audio_tokens` / `output_audio_tokens` are a subset of the input / output
+totals; they are carried as `x_InputAudioTokens` / `x_OutputAudioTokens`
+extensions on the respective records rather than as separate buckets, so audio
+usage stays distinguishable without double-counting.
 
 | FOCUS column | Source |
 | --- | --- |
@@ -84,8 +92,10 @@ focus-exporter --provider openai --start 2026-07-01 --end 2026-08-01 --format js
   `line_item`, so we cannot attribute dollar cost to a specific model or token
   bucket the way the Anthropic adapter does. Token records carry usage without
   cost; cost records carry dollars without tokens.
-- **A window is required.** The API requires `start_time`, so always pass
-  `--start`/`--end` (or `--month`).
+- **`--start` is required, `--end` optional.** The API requires `start_time`;
+  the CLI rejects an open-ended window for this provider. `--end` maps to
+  `end_time` and is only sent when given.
 - **Granularity is daily** (`bucket_width=1d`).
-- **No cache-creation bucket.** OpenAI's prompt caching is a discounted read; the
-  adapter maps `input_cached_tokens` to `cache_read` only.
+- **Cache-write tokens** (`input_cache_write_tokens`, billed at a premium on
+  newer models) map to the `cache_creation` bucket; cached reads map to
+  `cache_read`.

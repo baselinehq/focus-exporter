@@ -12,7 +12,7 @@ database. Each provider is a small adapter behind one interface.
 
 ## Layout
 
-```
+```text
 cmd/focus-exporter/          CLI (flags, provider registry, window guard, sinks)
 pkg/focus/                   generated FOCUS 1.2 Record + FromUsage mapper
 pkg/model/                   UsageRecord (domain-agnostic) + typed FOCUS enums
@@ -93,7 +93,7 @@ them.)
 
 ## The gate (run before reporting work done)
 
-```
+```sh
 go generate ./...   # pkg/focus/record_gen.go must be regenerated from columns.json; leaves no diff
 gofmt -l .          # empty
 go vet ./...

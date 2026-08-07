@@ -6,8 +6,9 @@
       "start_time": 1754006400,
       "end_time": 1754092800,
       "results": [
-        {"object": "organization.usage.completions.result", "model": "gpt-4o", "input_tokens": 1000, "input_cached_tokens": 200, "input_uncached_tokens": 800, "output_tokens": 500, "num_model_requests": 7},
-        {"object": "organization.usage.completions.result", "model": "gpt-4o-mini", "input_tokens": 300, "input_cached_tokens": 0, "output_tokens": 100, "num_model_requests": 3}
+        {"object": "organization.usage.completions.result", "model": "gpt-4o", "input_tokens": 1100, "input_cached_tokens": 200, "input_uncached_tokens": 800, "input_cache_write_tokens": 100, "input_audio_tokens": 50, "output_tokens": 500, "output_audio_tokens": 20, "num_model_requests": 7},
+        {"object": "organization.usage.completions.result", "model": "gpt-4o-mini", "input_tokens": 300, "input_cached_tokens": 0, "output_tokens": 100, "num_model_requests": 3},
+        {"object": "organization.usage.completions.result", "model": "gpt-broken", "input_tokens": "not-a-number", "output_tokens": 10}
       ]
     }
   ],

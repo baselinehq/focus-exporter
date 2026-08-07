@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -33,25 +34,28 @@ func New(get integrations.HTTPGet, adminKey, accountID string) integrations.Sour
 
 func (s *source) Name() string { return Name }
 
-type timeBucket[T any] struct {
-	StartTime int64 `json:"start_time"`
-	EndTime   int64 `json:"end_time"`
-	Results   []T   `json:"results"`
+type timeBucket struct {
+	StartTime int64             `json:"start_time"`
+	EndTime   int64             `json:"end_time"`
+	Results   []json.RawMessage `json:"results"`
 }
 
-type page[T any] struct {
-	Data     []timeBucket[T] `json:"data"`
-	HasMore  bool            `json:"has_more"`
-	NextPage string          `json:"next_page"`
+type page struct {
+	Data     []timeBucket `json:"data"`
+	HasMore  bool         `json:"has_more"`
+	NextPage string       `json:"next_page"`
 }
 
 type usageResult struct {
-	Model               string `json:"model"`
-	InputTokens         int64  `json:"input_tokens"`
-	InputCachedTokens   int64  `json:"input_cached_tokens"`
-	InputUncachedTokens int64  `json:"input_uncached_tokens"`
-	OutputTokens        int64  `json:"output_tokens"`
-	NumModelRequests    int64  `json:"num_model_requests"`
+	Model                 string `json:"model"`
+	InputTokens           int64  `json:"input_tokens"`
+	InputCachedTokens     int64  `json:"input_cached_tokens"`
+	InputUncachedTokens   int64  `json:"input_uncached_tokens"`
+	InputCacheWriteTokens int64  `json:"input_cache_write_tokens"`
+	InputAudioTokens      int64  `json:"input_audio_tokens"`
+	OutputTokens          int64  `json:"output_tokens"`
+	OutputAudioTokens     int64  `json:"output_audio_tokens"`
+	NumModelRequests      int64  `json:"num_model_requests"`
 }
 
 type costResult struct {
@@ -63,11 +67,11 @@ type costResult struct {
 }
 
 func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.UsageRecord, error) {
-	usage, err := fetchAll[usageResult](ctx, s, "usage/completions", "model", usageLimit, start, end)
+	usage, err := fetchAll(ctx, s, "usage/completions", "model", usageLimit, start, end)
 	if err != nil {
 		return nil, err
 	}
-	costs, err := fetchAll[costResult](ctx, s, "costs", "line_item", costLimit, start, end)
+	costs, err := fetchAll(ctx, s, "costs", "line_item", costLimit, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -78,36 +82,55 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 	return out, nil
 }
 
-func (s *source) tokenRecords(buckets []timeBucket[usageResult], start, end time.Time) []model.UsageRecord {
+func (s *source) tokenRecords(buckets []timeBucket, start, end time.Time) []model.UsageRecord {
 	var out []model.UsageRecord
 	for _, b := range buckets {
 		day, ok := bucketDay(b.StartTime, start, end)
 		if !ok {
 			continue
 		}
-		for _, r := range b.Results {
+		for _, raw := range b.Results {
+			var r usageResult
+			if err := json.Unmarshal(raw, &r); err != nil {
+				log.Printf("openai: skipping unparseable usage row: %v", err)
+				continue
+			}
 			if r.Model == "" {
 				continue
 			}
-			emit := func(bucket model.TokenBucket, n int64) {
-				if n <= 0 {
-					return
+			if v := uncachedInput(r); v > 0 {
+				rec := s.tokenRecord(day, r.Model, model.BucketInput, v, r.NumModelRequests)
+				if r.InputAudioTokens > 0 {
+					rec.Extensions["x_InputAudioTokens"] = r.InputAudioTokens
 				}
-				out = append(out, s.tokenRecord(day, r.Model, bucket, n, r.NumModelRequests))
+				out = append(out, rec)
 			}
-			emit(model.BucketInput, uncachedInput(r))
-			emit(model.BucketCacheRead, r.InputCachedTokens)
-			emit(model.BucketOutput, r.OutputTokens)
+			if r.InputCachedTokens > 0 {
+				out = append(out, s.tokenRecord(day, r.Model, model.BucketCacheRead, r.InputCachedTokens, r.NumModelRequests))
+			}
+			if r.InputCacheWriteTokens > 0 {
+				out = append(out, s.tokenRecord(day, r.Model, model.BucketCacheCreation, r.InputCacheWriteTokens, r.NumModelRequests))
+			}
+			if r.OutputTokens > 0 {
+				rec := s.tokenRecord(day, r.Model, model.BucketOutput, r.OutputTokens, r.NumModelRequests)
+				if r.OutputAudioTokens > 0 {
+					rec.Extensions["x_OutputAudioTokens"] = r.OutputAudioTokens
+				}
+				out = append(out, rec)
+			}
 		}
 	}
 	return out
 }
 
+// uncachedInput is input tokens billed at the standard uncached rate. OpenAI's
+// input_uncached_tokens already excludes both cached reads and cache writes; the
+// fallback subtracts both so cache-write tokens are not double counted into input.
 func uncachedInput(r usageResult) int64 {
 	if r.InputUncachedTokens > 0 {
 		return r.InputUncachedTokens
 	}
-	if n := r.InputTokens - r.InputCachedTokens; n > 0 {
+	if n := r.InputTokens - r.InputCachedTokens - r.InputCacheWriteTokens; n > 0 {
 		return n
 	}
 	return 0
@@ -141,14 +164,25 @@ func (s *source) tokenRecord(day time.Time, modelName string, bucket model.Token
 	return rec
 }
 
-func (s *source) costRecords(buckets []timeBucket[costResult], start, end time.Time) []model.UsageRecord {
+func (s *source) costRecords(buckets []timeBucket, start, end time.Time) []model.UsageRecord {
 	var out []model.UsageRecord
 	for _, b := range buckets {
 		day, ok := bucketDay(b.StartTime, start, end)
 		if !ok {
 			continue
 		}
-		for _, r := range b.Results {
+		for _, raw := range b.Results {
+			var r costResult
+			if err := json.Unmarshal(raw, &r); err != nil {
+				log.Printf("openai: skipping unparseable cost row: %v", err)
+				continue
+			}
+			amount, err := r.Amount.Value.Float64()
+			if err != nil {
+				log.Printf("openai: skipping cost row with bad amount %q: %v", r.Amount.Value, err)
+				continue
+			}
+
 			rec := s.baseRecord()
 			rec.ServiceName = r.LineItem
 			if rec.ServiceName == "" {
@@ -157,6 +191,9 @@ func (s *source) costRecords(buckets []timeBucket[costResult], start, end time.T
 			rec.ChargeDescription = r.LineItem
 			rec.SkuMeter = r.LineItem
 			rec.Day = day
+			if amount < 0 {
+				rec.ChargeCategory = model.ChargeCredit
+			}
 
 			cost := model.Dec(r.Amount.Value.String())
 			rec.Cost = &cost
@@ -203,15 +240,15 @@ func bucketDay(unix int64, start, end time.Time) (time.Time, bool) {
 	return t, true
 }
 
-func fetchAll[T any](ctx context.Context, s *source, report, groupBy string, limit int, start, end time.Time) ([]timeBucket[T], error) {
-	var out []timeBucket[T]
+func fetchAll(ctx context.Context, s *source, report, groupBy string, limit int, start, end time.Time) ([]timeBucket, error) {
+	var out []timeBucket
 	nextPage := ""
 	for {
 		endpoint, err := s.reportURL(report, groupBy, limit, start, end, nextPage)
 		if err != nil {
 			return nil, err
 		}
-		var body page[T]
+		var body page
 		if err := s.getJSON(ctx, endpoint, &body); err != nil {
 			return nil, err
 		}

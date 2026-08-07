@@ -10,9 +10,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - OpenAI adapter: token records per (day, model, bucket) from the
   `usage/completions` Admin API and separate line-item cost records (real dollars)
-  from `costs`. Cost and token detail are separate grains because OpenAI's cost
-  API groups only by line item, not model. Registered as `--provider openai`
-  (env `OPENAI_ADMIN_KEY`, optional `OPENAI_ORG_ID`).
+  from `costs`. Cost and token detail are separate grains because the adapter
+  groups cost by `line_item` (a coarse product bucket that can't be attributed to
+  a model). Cache-write tokens map to `cache_creation`, audio tokens ride as `x_`
+  extensions, and malformed rows are skipped per row. Registered as
+  `--provider openai` (env `OPENAI_ADMIN_KEY`, optional `OPENAI_ORG_ID`).
 - Registry capability flag (`Capabilities.RequiresTimeRange`) so the CLI rejects
   an open-ended window for providers whose API mandates a start time, instead of
   hard-coding provider names.

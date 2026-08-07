@@ -95,6 +95,33 @@ func TestFetch(t *testing.T) {
 		}
 	})
 
+	t.Run("cache-write tokens map to cache_creation", func(t *testing.T) {
+		r, ok := find(recs, "gpt-4o", string(model.BucketCacheCreation))
+		if !ok {
+			t.Fatal("cache_creation record missing")
+		}
+		if r.ConsumedQty == nil || string(*r.ConsumedQty) != "100" {
+			t.Fatalf("cache_creation qty = %v, want 100", r.ConsumedQty)
+		}
+	})
+
+	t.Run("audio tokens carried as extensions, not double-counted into input", func(t *testing.T) {
+		in, _ := find(recs, "gpt-4o", string(model.BucketInput))
+		if in.Extensions["x_InputAudioTokens"] != int64(50) {
+			t.Fatalf("x_InputAudioTokens: %+v", in.Extensions)
+		}
+		out, _ := find(recs, "gpt-4o", string(model.BucketOutput))
+		if out.Extensions["x_OutputAudioTokens"] != int64(20) {
+			t.Fatalf("x_OutputAudioTokens: %+v", out.Extensions)
+		}
+	})
+
+	t.Run("malformed usage row skipped, others retained", func(t *testing.T) {
+		if _, ok := find(recs, "gpt-broken", string(model.BucketOutput)); ok {
+			t.Fatal("malformed usage row must be skipped")
+		}
+	})
+
 	t.Run("num_model_requests carried as extension", func(t *testing.T) {
 		r, _ := find(recs, "gpt-4o", string(model.BucketInput))
 		if r.Extensions["x_ModelRequests"] != int64(7) {
@@ -119,6 +146,22 @@ func TestFetch(t *testing.T) {
 		img, ok := find(recs, "Image models", "Image models")
 		if !ok || img.Cost == nil || string(*img.Cost) != "0.06" {
 			t.Fatalf("image cost: %+v", img)
+		}
+	})
+
+	t.Run("negative cost line is a Credit", func(t *testing.T) {
+		r, ok := find(recs, "Credit", "Credit")
+		if !ok || r.Cost == nil || string(*r.Cost) != "-5.0" {
+			t.Fatalf("credit record: %+v", r)
+		}
+		if r.ChargeCategory != model.ChargeCredit {
+			t.Fatalf("negative amount must be Credit: %q", r.ChargeCategory)
+		}
+	})
+
+	t.Run("malformed cost row skipped", func(t *testing.T) {
+		if _, ok := find(recs, "Malformed", "Malformed"); ok {
+			t.Fatal("cost row with non-numeric amount must be skipped")
 		}
 	})
 }
