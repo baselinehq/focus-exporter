@@ -21,6 +21,12 @@ type Capabilities struct {
 	RequiresTimeRange bool
 }
 
+type Provider struct {
+	Name         string
+	Capabilities Capabilities
+	New          Factory
+}
+
 type entry struct {
 	factory Factory
 	caps    Capabilities
@@ -36,6 +42,10 @@ func NewRegistry() *Registry {
 
 func (r *Registry) Register(name string, f Factory) {
 	r.RegisterWithCapabilities(name, f, Capabilities{})
+}
+
+func (r *Registry) Add(p Provider) {
+	r.RegisterWithCapabilities(p.Name, p.New, p.Capabilities)
 }
 
 func (r *Registry) RegisterWithCapabilities(name string, f Factory, caps Capabilities) {

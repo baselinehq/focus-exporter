@@ -67,11 +67,14 @@ internal/gen/                FOCUS-type generator (go:generate)
   `ChargeCategory = Credit`), never netted away.
 - **Merge, don't overwrite, dimensions** when one logical bucket splits across
   rows.
-- **Constructor** `New(get integrations.HTTPGet, ...creds) integrations.Source`.
-  Register in `cmd/focus-exporter/main.go`. If the API mandates a start time,
-  register with `integrations.Capabilities{RequiresTimeRange: true}` (the CLI
-  rejects an open-ended window for those) - do NOT name-match providers in the
-  CLI.
+- **Constructor** `New(get integrations.HTTPGet, ...creds) integrations.Source`
+  (explicit creds, so tests build a source directly).
+- **Registration** is a package-level `var Provider = integrations.Provider{...}`
+  exposing `Name`, `Capabilities`, and a `New(get, env)` that reads the provider's
+  env vars and calls the constructor. Add it to the slice in
+  `defaultRegistry` (`cmd/focus-exporter/main.go`) - one line, no factory in the
+  CLI. Set `Capabilities{RequiresTimeRange: true}` when the API mandates a start
+  time; never name-match providers in the CLI.
 - **Docs**: add `docs/providers/<name>.md` (env vars, scopes, endpoints, FOCUS
   mapping table, example, limitations) and move the provider to "Available" in
   `docs/providers/README.md`.
