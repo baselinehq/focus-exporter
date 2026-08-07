@@ -31,6 +31,19 @@ func New(get integrations.HTTPGet, managementKey, accountID string) integrations
 	return newSource(get, managementKey, accountID, time.Now)
 }
 
+var Provider = integrations.Provider{
+	Name:         Name,
+	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
+	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+		key := env("OPENROUTER_MANAGEMENT_KEY")
+		orgID := env("OPENROUTER_ORG_ID")
+		if key == "" || orgID == "" {
+			return nil, fmt.Errorf("missing OPENROUTER_MANAGEMENT_KEY / OPENROUTER_ORG_ID env")
+		}
+		return New(get, key, orgID), nil
+	},
+}
+
 func newSource(get integrations.HTTPGet, managementKey, accountID string, now func() time.Time) *source {
 	return &source{get: get, key: managementKey, accountID: accountID, now: now}
 }

@@ -33,6 +33,19 @@ func New(get integrations.HTTPGet, adminKey, accountID string) integrations.Sour
 	return &source{get: get, adminKey: adminKey, accountID: accountID}
 }
 
+var Provider = integrations.Provider{
+	Name:         Name,
+	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
+	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+		adminKey := env("OPENAI_ADMIN_KEY")
+		orgID := env("OPENAI_ORG_ID")
+		if adminKey == "" || orgID == "" {
+			return nil, fmt.Errorf("missing OPENAI_ADMIN_KEY / OPENAI_ORG_ID env")
+		}
+		return New(get, adminKey, orgID), nil
+	},
+}
+
 func (s *source) Name() string { return Name }
 
 type timeBucket struct {

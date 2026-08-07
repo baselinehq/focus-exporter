@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Each adapter now exposes a package-level `integrations.Provider` descriptor
+  (name, capabilities, and an env-reading `New`); the CLI registers them with a
+  single `reg.Add(provider.Provider)` per adapter instead of hand-rolled factory
+  functions in `main.go`.
 - FOCUS compliance is now enforced: every mapped record is run through
   `focus.Validate` before export and the run fails on the first non-compliant
   row. `Validate` now also checks the mandatory columns it previously skipped -

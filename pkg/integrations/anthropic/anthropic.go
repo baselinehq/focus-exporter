@@ -28,6 +28,18 @@ type source struct {
 	accountID string
 }
 
+var Provider = integrations.Provider{
+	Name:         Name,
+	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
+	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+		adminKey := env("ANTHROPIC_ADMIN_KEY")
+		if adminKey == "" {
+			return nil, fmt.Errorf("missing ANTHROPIC_ADMIN_KEY env")
+		}
+		return New(get, adminKey, env("ANTHROPIC_ORG_ID")), nil
+	},
+}
+
 func New(get integrations.HTTPGet, adminKey, accountID string) integrations.Source {
 	return &source{get: get, adminKey: adminKey, accountID: accountID}
 }

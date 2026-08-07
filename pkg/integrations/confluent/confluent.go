@@ -29,6 +29,20 @@ type source struct {
 	accountID string
 }
 
+var Provider = integrations.Provider{
+	Name:         Name,
+	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
+	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+		keyID := env("CONFLUENT_CLOUD_API_KEY")
+		secret := env("CONFLUENT_CLOUD_API_SECRET")
+		orgID := env("CONFLUENT_ORG_ID")
+		if keyID == "" || secret == "" || orgID == "" {
+			return nil, fmt.Errorf("missing CONFLUENT_CLOUD_API_KEY / CONFLUENT_CLOUD_API_SECRET / CONFLUENT_ORG_ID env")
+		}
+		return New(get, keyID, secret, orgID), nil
+	},
+}
+
 func New(get integrations.HTTPGet, keyID, secret, accountID string) integrations.Source {
 	return &source{get: get, keyID: keyID, secret: secret, accountID: accountID}
 }

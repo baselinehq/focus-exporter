@@ -39,58 +39,16 @@ func (s *stringSlice) Set(v string) error {
 
 func defaultRegistry() *integrations.Registry {
 	reg := integrations.NewRegistry()
-	reg.Register(planetscale.Name, planetscaleFactory)
-	reg.RegisterWithCapabilities(anthropic.Name, anthropicFactory, integrations.Capabilities{RequiresTimeRange: true})
-	reg.RegisterWithCapabilities(openai.Name, openaiFactory, integrations.Capabilities{RequiresTimeRange: true})
-	reg.RegisterWithCapabilities(confluent.Name, confluentFactory, integrations.Capabilities{RequiresTimeRange: true})
-	reg.RegisterWithCapabilities(openrouter.Name, openrouterFactory, integrations.Capabilities{RequiresTimeRange: true})
+	for _, p := range []integrations.Provider{
+		planetscale.Provider,
+		anthropic.Provider,
+		openai.Provider,
+		confluent.Provider,
+		openrouter.Provider,
+	} {
+		reg.Add(p)
+	}
 	return reg
-}
-
-func confluentFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
-	keyID := env("CONFLUENT_CLOUD_API_KEY")
-	secret := env("CONFLUENT_CLOUD_API_SECRET")
-	orgID := env("CONFLUENT_ORG_ID")
-	if keyID == "" || secret == "" || orgID == "" {
-		return nil, fmt.Errorf("missing CONFLUENT_CLOUD_API_KEY / CONFLUENT_CLOUD_API_SECRET / CONFLUENT_ORG_ID env")
-	}
-	return confluent.New(get, keyID, secret, orgID), nil
-}
-
-func openrouterFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
-	key := env("OPENROUTER_MANAGEMENT_KEY")
-	orgID := env("OPENROUTER_ORG_ID")
-	if key == "" || orgID == "" {
-		return nil, fmt.Errorf("missing OPENROUTER_MANAGEMENT_KEY / OPENROUTER_ORG_ID env")
-	}
-	return openrouter.New(get, key, orgID), nil
-}
-
-func openaiFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
-	adminKey := env("OPENAI_ADMIN_KEY")
-	orgID := env("OPENAI_ORG_ID")
-	if adminKey == "" || orgID == "" {
-		return nil, fmt.Errorf("missing OPENAI_ADMIN_KEY / OPENAI_ORG_ID env")
-	}
-	return openai.New(get, adminKey, orgID), nil
-}
-
-func anthropicFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
-	adminKey := env("ANTHROPIC_ADMIN_KEY")
-	if adminKey == "" {
-		return nil, fmt.Errorf("missing ANTHROPIC_ADMIN_KEY env")
-	}
-	return anthropic.New(get, adminKey, env("ANTHROPIC_ORG_ID")), nil
-}
-
-func planetscaleFactory(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
-	org := env("PLANETSCALE_ORG")
-	tokenID := env("PLANETSCALE_SERVICE_TOKEN_ID")
-	token := env("PLANETSCALE_SERVICE_TOKEN")
-	if org == "" || tokenID == "" || token == "" {
-		return nil, fmt.Errorf("missing PLANETSCALE_ORG / PLANETSCALE_SERVICE_TOKEN_ID / PLANETSCALE_SERVICE_TOKEN env")
-	}
-	return planetscale.New(get, org, tokenID, token), nil
 }
 
 func run(reg *integrations.Registry, args []string, env func(string) string, stdout io.Writer) error {
