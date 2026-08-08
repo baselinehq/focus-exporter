@@ -26,6 +26,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Charge completeness: adapters now capture non-usage charges (platform/plan
+  fees, committed-use, credits, discounts, tax), classified by `ChargeCategory`,
+  not just metered usage. Where a provider exposes a billed-total or summary the
+  non-usage charges are emitted so `sum(BilledCost)` reconciles to the invoice.
+  The Modal adapter reads `WorkspaceBillingSummary` and emits its `adjustments`
+  (plan -> Purchase, reservations -> Purchase/Committed, credits -> Credit,
+  storage -> Usage). Where a provider has no fee API (OpenRouter deposit fees and
+  BYOK surcharge - no transactions endpoint), the gap is documented rather than
+  fabricated.
 - Modal adapter: one FOCUS 1.2 record per (day, object) from the Modal workspace
   billing report. Modal has no REST billing endpoint, so this adapter talks
   **gRPC** (`api.modal.com:443`, `WorkspaceBillingReport`, server-streaming)

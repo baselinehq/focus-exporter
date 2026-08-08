@@ -198,6 +198,134 @@ func (x *WorkspaceBillingReportRequest) GetAppIds() []string {
 	return nil
 }
 
+type WorkspaceBillingSummaryRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	StartTimestamp *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_timestamp,json=startTimestamp,proto3" json:"start_timestamp,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WorkspaceBillingSummaryRequest) Reset() {
+	*x = WorkspaceBillingSummaryRequest{}
+	mi := &file_billing_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkspaceBillingSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkspaceBillingSummaryRequest) ProtoMessage() {}
+
+func (x *WorkspaceBillingSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_billing_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkspaceBillingSummaryRequest.ProtoReflect.Descriptor instead.
+func (*WorkspaceBillingSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_billing_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WorkspaceBillingSummaryRequest) GetStartTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartTimestamp
+	}
+	return nil
+}
+
+type WorkspaceBillingSummaryResponse struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	StartTimestamp       *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_timestamp,json=startTimestamp,proto3" json:"start_timestamp,omitempty"`
+	EndTimestamp         *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_timestamp,json=endTimestamp,proto3" json:"end_timestamp,omitempty"`
+	MeteredCost          string                 `protobuf:"bytes,3,opt,name=metered_cost,json=meteredCost,proto3" json:"metered_cost,omitempty"`
+	BilledCost           string                 `protobuf:"bytes,4,opt,name=billed_cost,json=billedCost,proto3" json:"billed_cost,omitempty"`
+	MeteredCostBreakdown map[string]string      `protobuf:"bytes,5,rep,name=metered_cost_breakdown,json=meteredCostBreakdown,proto3" json:"metered_cost_breakdown,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Adjustments          map[string]string      `protobuf:"bytes,6,rep,name=adjustments,proto3" json:"adjustments,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *WorkspaceBillingSummaryResponse) Reset() {
+	*x = WorkspaceBillingSummaryResponse{}
+	mi := &file_billing_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkspaceBillingSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkspaceBillingSummaryResponse) ProtoMessage() {}
+
+func (x *WorkspaceBillingSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_billing_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkspaceBillingSummaryResponse.ProtoReflect.Descriptor instead.
+func (*WorkspaceBillingSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_billing_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *WorkspaceBillingSummaryResponse) GetStartTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartTimestamp
+	}
+	return nil
+}
+
+func (x *WorkspaceBillingSummaryResponse) GetEndTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndTimestamp
+	}
+	return nil
+}
+
+func (x *WorkspaceBillingSummaryResponse) GetMeteredCost() string {
+	if x != nil {
+		return x.MeteredCost
+	}
+	return ""
+}
+
+func (x *WorkspaceBillingSummaryResponse) GetBilledCost() string {
+	if x != nil {
+		return x.BilledCost
+	}
+	return ""
+}
+
+func (x *WorkspaceBillingSummaryResponse) GetMeteredCostBreakdown() map[string]string {
+	if x != nil {
+		return x.MeteredCostBreakdown
+	}
+	return nil
+}
+
+func (x *WorkspaceBillingSummaryResponse) GetAdjustments() map[string]string {
+	if x != nil {
+		return x.Adjustments
+	}
+	return nil
+}
+
 var File_billing_proto protoreflect.FileDescriptor
 
 const file_billing_proto_rawDesc = "" +
@@ -225,9 +353,26 @@ const file_billing_proto_rawDesc = "" +
 	"resolution\x12\x1b\n" +
 	"\ttag_names\x18\x04 \x03(\tR\btagNames\x12'\n" +
 	"\x0fenvironment_ids\x18\x05 \x03(\tR\x0eenvironmentIds\x12\x17\n" +
-	"\aapp_ids\x18\x06 \x03(\tR\x06appIds2\x80\x01\n" +
+	"\aapp_ids\x18\x06 \x03(\tR\x06appIds\"e\n" +
+	"\x1eWorkspaceBillingSummaryRequest\x12C\n" +
+	"\x0fstart_timestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x0estartTimestamp\"\xd5\x04\n" +
+	"\x1fWorkspaceBillingSummaryResponse\x12C\n" +
+	"\x0fstart_timestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x0estartTimestamp\x12?\n" +
+	"\rend_timestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fendTimestamp\x12!\n" +
+	"\fmetered_cost\x18\x03 \x01(\tR\vmeteredCost\x12\x1f\n" +
+	"\vbilled_cost\x18\x04 \x01(\tR\n" +
+	"billedCost\x12}\n" +
+	"\x16metered_cost_breakdown\x18\x05 \x03(\v2G.modal.client.WorkspaceBillingSummaryResponse.MeteredCostBreakdownEntryR\x14meteredCostBreakdown\x12`\n" +
+	"\vadjustments\x18\x06 \x03(\v2>.modal.client.WorkspaceBillingSummaryResponse.AdjustmentsEntryR\vadjustments\x1aG\n" +
+	"\x19MeteredCostBreakdownEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
+	"\x10AdjustmentsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xf8\x01\n" +
 	"\vModalClient\x12q\n" +
-	"\x16WorkspaceBillingReport\x12+.modal.client.WorkspaceBillingReportRequest\x1a(.modal.client.WorkspaceBillingReportItem0\x01BEZCgithub.com/baselinehq/focus-exporter/pkg/integrations/modal/modalpbb\x06proto3"
+	"\x16WorkspaceBillingReport\x12+.modal.client.WorkspaceBillingReportRequest\x1a(.modal.client.WorkspaceBillingReportItem0\x01\x12v\n" +
+	"\x17WorkspaceBillingSummary\x12,.modal.client.WorkspaceBillingSummaryRequest\x1a-.modal.client.WorkspaceBillingSummaryResponseBEZCgithub.com/baselinehq/focus-exporter/pkg/integrations/modal/modalpbb\x06proto3"
 
 var (
 	file_billing_proto_rawDescOnce sync.Once
@@ -241,27 +386,38 @@ func file_billing_proto_rawDescGZIP() []byte {
 	return file_billing_proto_rawDescData
 }
 
-var file_billing_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_billing_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_billing_proto_goTypes = []any{
-	(*WorkspaceBillingReportItem)(nil),    // 0: modal.client.WorkspaceBillingReportItem
-	(*WorkspaceBillingReportRequest)(nil), // 1: modal.client.WorkspaceBillingReportRequest
-	nil,                                   // 2: modal.client.WorkspaceBillingReportItem.TagsEntry
-	nil,                                   // 3: modal.client.WorkspaceBillingReportItem.CostByResourceEntry
-	(*timestamppb.Timestamp)(nil),         // 4: google.protobuf.Timestamp
+	(*WorkspaceBillingReportItem)(nil),      // 0: modal.client.WorkspaceBillingReportItem
+	(*WorkspaceBillingReportRequest)(nil),   // 1: modal.client.WorkspaceBillingReportRequest
+	(*WorkspaceBillingSummaryRequest)(nil),  // 2: modal.client.WorkspaceBillingSummaryRequest
+	(*WorkspaceBillingSummaryResponse)(nil), // 3: modal.client.WorkspaceBillingSummaryResponse
+	nil,                                     // 4: modal.client.WorkspaceBillingReportItem.TagsEntry
+	nil,                                     // 5: modal.client.WorkspaceBillingReportItem.CostByResourceEntry
+	nil,                                     // 6: modal.client.WorkspaceBillingSummaryResponse.MeteredCostBreakdownEntry
+	nil,                                     // 7: modal.client.WorkspaceBillingSummaryResponse.AdjustmentsEntry
+	(*timestamppb.Timestamp)(nil),           // 8: google.protobuf.Timestamp
 }
 var file_billing_proto_depIdxs = []int32{
-	4, // 0: modal.client.WorkspaceBillingReportItem.interval:type_name -> google.protobuf.Timestamp
-	2, // 1: modal.client.WorkspaceBillingReportItem.tags:type_name -> modal.client.WorkspaceBillingReportItem.TagsEntry
-	3, // 2: modal.client.WorkspaceBillingReportItem.cost_by_resource:type_name -> modal.client.WorkspaceBillingReportItem.CostByResourceEntry
-	4, // 3: modal.client.WorkspaceBillingReportRequest.start_timestamp:type_name -> google.protobuf.Timestamp
-	4, // 4: modal.client.WorkspaceBillingReportRequest.end_timestamp:type_name -> google.protobuf.Timestamp
-	1, // 5: modal.client.ModalClient.WorkspaceBillingReport:input_type -> modal.client.WorkspaceBillingReportRequest
-	0, // 6: modal.client.ModalClient.WorkspaceBillingReport:output_type -> modal.client.WorkspaceBillingReportItem
-	6, // [6:7] is the sub-list for method output_type
-	5, // [5:6] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	8,  // 0: modal.client.WorkspaceBillingReportItem.interval:type_name -> google.protobuf.Timestamp
+	4,  // 1: modal.client.WorkspaceBillingReportItem.tags:type_name -> modal.client.WorkspaceBillingReportItem.TagsEntry
+	5,  // 2: modal.client.WorkspaceBillingReportItem.cost_by_resource:type_name -> modal.client.WorkspaceBillingReportItem.CostByResourceEntry
+	8,  // 3: modal.client.WorkspaceBillingReportRequest.start_timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 4: modal.client.WorkspaceBillingReportRequest.end_timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 5: modal.client.WorkspaceBillingSummaryRequest.start_timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 6: modal.client.WorkspaceBillingSummaryResponse.start_timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 7: modal.client.WorkspaceBillingSummaryResponse.end_timestamp:type_name -> google.protobuf.Timestamp
+	6,  // 8: modal.client.WorkspaceBillingSummaryResponse.metered_cost_breakdown:type_name -> modal.client.WorkspaceBillingSummaryResponse.MeteredCostBreakdownEntry
+	7,  // 9: modal.client.WorkspaceBillingSummaryResponse.adjustments:type_name -> modal.client.WorkspaceBillingSummaryResponse.AdjustmentsEntry
+	1,  // 10: modal.client.ModalClient.WorkspaceBillingReport:input_type -> modal.client.WorkspaceBillingReportRequest
+	2,  // 11: modal.client.ModalClient.WorkspaceBillingSummary:input_type -> modal.client.WorkspaceBillingSummaryRequest
+	0,  // 12: modal.client.ModalClient.WorkspaceBillingReport:output_type -> modal.client.WorkspaceBillingReportItem
+	3,  // 13: modal.client.ModalClient.WorkspaceBillingSummary:output_type -> modal.client.WorkspaceBillingSummaryResponse
+	12, // [12:14] is the sub-list for method output_type
+	10, // [10:12] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_billing_proto_init() }
@@ -275,7 +431,7 @@ func file_billing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_billing_proto_rawDesc), len(file_billing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ModalClient_WorkspaceBillingReport_FullMethodName = "/modal.client.ModalClient/WorkspaceBillingReport"
+	ModalClient_WorkspaceBillingReport_FullMethodName  = "/modal.client.ModalClient/WorkspaceBillingReport"
+	ModalClient_WorkspaceBillingSummary_FullMethodName = "/modal.client.ModalClient/WorkspaceBillingSummary"
 )
 
 // ModalClientClient is the client API for ModalClient service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ModalClientClient interface {
 	WorkspaceBillingReport(ctx context.Context, in *WorkspaceBillingReportRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WorkspaceBillingReportItem], error)
+	WorkspaceBillingSummary(ctx context.Context, in *WorkspaceBillingSummaryRequest, opts ...grpc.CallOption) (*WorkspaceBillingSummaryResponse, error)
 }
 
 type modalClientClient struct {
@@ -56,11 +58,22 @@ func (c *modalClientClient) WorkspaceBillingReport(ctx context.Context, in *Work
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ModalClient_WorkspaceBillingReportClient = grpc.ServerStreamingClient[WorkspaceBillingReportItem]
 
+func (c *modalClientClient) WorkspaceBillingSummary(ctx context.Context, in *WorkspaceBillingSummaryRequest, opts ...grpc.CallOption) (*WorkspaceBillingSummaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkspaceBillingSummaryResponse)
+	err := c.cc.Invoke(ctx, ModalClient_WorkspaceBillingSummary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ModalClientServer is the server API for ModalClient service.
 // All implementations must embed UnimplementedModalClientServer
 // for forward compatibility.
 type ModalClientServer interface {
 	WorkspaceBillingReport(*WorkspaceBillingReportRequest, grpc.ServerStreamingServer[WorkspaceBillingReportItem]) error
+	WorkspaceBillingSummary(context.Context, *WorkspaceBillingSummaryRequest) (*WorkspaceBillingSummaryResponse, error)
 	mustEmbedUnimplementedModalClientServer()
 }
 
@@ -73,6 +86,9 @@ type UnimplementedModalClientServer struct{}
 
 func (UnimplementedModalClientServer) WorkspaceBillingReport(*WorkspaceBillingReportRequest, grpc.ServerStreamingServer[WorkspaceBillingReportItem]) error {
 	return status.Error(codes.Unimplemented, "method WorkspaceBillingReport not implemented")
+}
+func (UnimplementedModalClientServer) WorkspaceBillingSummary(context.Context, *WorkspaceBillingSummaryRequest) (*WorkspaceBillingSummaryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WorkspaceBillingSummary not implemented")
 }
 func (UnimplementedModalClientServer) mustEmbedUnimplementedModalClientServer() {}
 func (UnimplementedModalClientServer) testEmbeddedByValue()                     {}
@@ -106,13 +122,36 @@ func _ModalClient_WorkspaceBillingReport_Handler(srv interface{}, stream grpc.Se
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ModalClient_WorkspaceBillingReportServer = grpc.ServerStreamingServer[WorkspaceBillingReportItem]
 
+func _ModalClient_WorkspaceBillingSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WorkspaceBillingSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModalClientServer).WorkspaceBillingSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ModalClient_WorkspaceBillingSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModalClientServer).WorkspaceBillingSummary(ctx, req.(*WorkspaceBillingSummaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ModalClient_ServiceDesc is the grpc.ServiceDesc for ModalClient service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ModalClient_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "modal.client.ModalClient",
 	HandlerType: (*ModalClientServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "WorkspaceBillingSummary",
+			Handler:    _ModalClient_WorkspaceBillingSummary_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "WorkspaceBillingReport",

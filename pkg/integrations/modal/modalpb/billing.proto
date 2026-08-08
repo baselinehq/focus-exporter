@@ -25,6 +25,20 @@ message WorkspaceBillingReportRequest {
   repeated string app_ids = 6;
 }
 
+message WorkspaceBillingSummaryRequest {
+  google.protobuf.Timestamp start_timestamp = 1;
+}
+
+message WorkspaceBillingSummaryResponse {
+  google.protobuf.Timestamp start_timestamp = 1;
+  google.protobuf.Timestamp end_timestamp = 2;
+  string metered_cost = 3;
+  string billed_cost = 4;
+  map<string, string> metered_cost_breakdown = 5;
+  map<string, string> adjustments = 6;
+}
+
 service ModalClient {
   rpc WorkspaceBillingReport(WorkspaceBillingReportRequest) returns (stream WorkspaceBillingReportItem);
+  rpc WorkspaceBillingSummary(WorkspaceBillingSummaryRequest) returns (WorkspaceBillingSummaryResponse);
 }

@@ -24,7 +24,8 @@ gRPC directly rather than going through the shared `HTTPGet` seam.
 
 | Transport | Target | Purpose |
 | --- | --- | --- |
-| gRPC (TLS) | `api.modal.com:443` `modal.client.ModalClient/WorkspaceBillingReport` | Per-object, per-interval workspace cost. The adapter requests `resolution="d"` (daily) over the `[start, end)` window. |
+| gRPC (TLS) | `api.modal.com:443` `modal.client.ModalClient/WorkspaceBillingReport` | Per-object, per-interval usage cost. The adapter requests `resolution="d"` (daily) over the `[start, end)` window. |
+| gRPC (TLS) | `api.modal.com:443` `modal.client.ModalClient/WorkspaceBillingSummary` | Month `metered_cost` vs `billed_cost` plus an `adjustments` map, used to emit the non-usage charges so total `BilledCost` reconciles to the invoice. |
 
 ## FOCUS mapping
 
@@ -54,10 +55,32 @@ export MODAL_WORKSPACE_ID=your-workspace
 focus-exporter --provider modal --start 2026-07-01 --end 2026-08-01 --format json
 ```
 
+## Non-usage charges
+
+Beyond per-object usage, the workspace billing summary's `adjustments` map is
+emitted as its own records so the total reconciles to what Modal actually bills:
+
+| Adjustment key | `ChargeCategory` | Notes |
+| --- | --- | --- |
+| `plan` | Purchase | platform/plan fee |
+| `reservations` | Purchase | committed-use (`PricingCategory = Committed`) |
+| `credits` | Credit | applied credits (negative) |
+| `storage` | Usage | storage charge |
+| anything else | Adjustment | forward-compatible catch-all |
+
+Each carries the summary month as its charge period. Amounts are taken from the
+API verbatim (the summary is signed so `metered_cost + sum(adjustments) =
+billed_cost`); the exact keys and signs are pending live verification against a
+real workspace.
+
 ## Notes and limitations
 
 - **A window is required** (the report needs a start and end). Pass
   `--start`/`--end` or `--month`.
+- **Non-usage charges need the monthly summary.** They are keyed to the summary
+  month (`WorkspaceBillingSummary` is monthly), while usage records are daily. If
+  the summary call fails, usage records are still emitted and the non-usage
+  charges are skipped with a log line.
 - **Daily grain.** The adapter requests `resolution="d"`; each record is one
   object for one day. The per-resource split (CPU / memory / specific GPU types)
   rides in `SkuPriceDetails`, so GPU spend is visible without losing the object

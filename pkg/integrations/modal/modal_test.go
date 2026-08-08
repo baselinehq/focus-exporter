@@ -2,6 +2,7 @@ package modal
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -17,6 +18,14 @@ func fakeReport(items []*modalpb.WorkspaceBillingReportItem, err error) reporter
 		return items, err
 	}
 }
+
+func fakeSummary(summary *modalpb.WorkspaceBillingSummaryResponse, err error) summarizer {
+	return func(context.Context, time.Time) (*modalpb.WorkspaceBillingSummaryResponse, error) {
+		return summary, err
+	}
+}
+
+func noSummary() summarizer { return fakeSummary(nil, errors.New("no summary")) }
 
 func byResource(recs []model.UsageRecord, id string) (model.UsageRecord, bool) {
 	for _, r := range recs {
@@ -45,7 +54,7 @@ func TestFetch(t *testing.T) {
 		},
 	}
 
-	recs, err := newSource(fakeReport(items, nil), "revyl-ws").Fetch(context.Background(), day, day.AddDate(0, 0, 1))
+	recs, err := newSource(fakeReport(items, nil), noSummary(), "revyl-ws").Fetch(context.Background(), day, day.AddDate(0, 0, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,6 +95,40 @@ func TestFetch(t *testing.T) {
 		r, _ := byResource(recs, "ap-abc123")
 		if err := focus.Validate(focus.FromUsage(r)); err != nil {
 			t.Fatalf("record not FOCUS-compliant: %v", err)
+		}
+	})
+
+	t.Run("non-usage charges emitted from billing summary", func(t *testing.T) {
+		monthStart := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+		summary := &modalpb.WorkspaceBillingSummaryResponse{
+			StartTimestamp: timestamppb.New(monthStart),
+			EndTimestamp:   timestamppb.New(monthStart.AddDate(0, 0, 31)),
+			MeteredCost:    "12.50",
+			BilledCost:     "37.50",
+			Adjustments:    map[string]string{"plan": "30.00", "credits": "-5.00"},
+		}
+		recs, err := newSource(fakeReport(items, nil), fakeSummary(summary, nil), "revyl-ws").
+			Fetch(context.Background(), monthStart, monthStart.AddDate(0, 1, 0))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		byMeter := map[string]model.UsageRecord{}
+		for _, r := range recs {
+			if r.ChargeCategory != model.ChargeUsage || r.SkuMeter != "" {
+				byMeter[r.SkuMeter] = r
+			}
+		}
+		plan, ok := byMeter["plan"]
+		if !ok || plan.ChargeCategory != model.ChargePurchase || plan.Cost == nil || string(*plan.Cost) != "30.00" {
+			t.Fatalf("plan fee record wrong: %+v", plan)
+		}
+		credits, ok := byMeter["credits"]
+		if !ok || credits.ChargeCategory != model.ChargeCredit || string(*credits.Cost) != "-5.00" {
+			t.Fatalf("credit record wrong: %+v", credits)
+		}
+		if err := focus.Validate(focus.FromUsage(plan)); err != nil {
+			t.Fatalf("plan fee not FOCUS-valid: %v", err)
 		}
 	})
 }

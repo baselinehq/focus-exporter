@@ -101,6 +101,17 @@ internal/gen/                FOCUS-type generator (go:generate)
   `BillingAccountId` is a mandatory FOCUS column: resolve it from the API when
   there's an endpoint (e.g. Anthropic `/organizations/me`), otherwise require an
   org-id env in the factory so it is never empty.
+- **Capture every charge, not just usage.** A provider bills more than metered
+  usage - platform/plan fees, deposit/payment fees, minimums, committed-use
+  charges, free credits, discounts, tax. Classify each by `ChargeCategory`:
+  metered usage -> `Usage`, fees/purchases -> `Purchase`, credits/discounts ->
+  `Credit`, tax -> `Tax`, other reconciling deltas -> `Adjustment`. When the
+  provider exposes a billed-total or summary (e.g. Modal `WorkspaceBillingSummary`
+  gives `metered_cost` vs `billed_cost` plus an `adjustments` map), emit the
+  non-usage charges as their own records so `sum(BilledCost)` reconciles to the
+  invoice. When the API does NOT expose a charge (e.g. OpenRouter deposit fees
+  and BYOK surcharge - no transactions endpoint), say so in the provider doc's
+  limitations; never fabricate a fee.
 - **No float drift on money**: decode amounts as `json.Number` or a decimal
   string; never parse to `float64` and re-format. Cents vs dollars: verify per
   API and convert exactly (`math/big.Rat`).
