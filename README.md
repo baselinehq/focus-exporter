@@ -138,7 +138,9 @@ See [AGENTS.md](AGENTS.md) for the full conventions. In short:
    the provider's env vars, and add it to `defaultRegistry` in
    `cmd/focus-exporter/main.go` (one line, no factory in the CLI).
 3. Add `docs/providers/<provider>.md`, a row to the Integrations table above,
-   and hermetic tests under `pkg/integrations/<provider>/testdata/`.
+   and hermetic tests beside the package
+   (`pkg/integrations/<provider>/<provider>_test.go`), with fixtures under
+   `pkg/integrations/<provider>/testdata/`.
 
 `model.UsageRecord` is domain-agnostic: infrastructure providers fill the
 resource/region/period fields, and model providers add token detail through the
