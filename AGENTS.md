@@ -21,6 +21,13 @@ others.
   over a recent window and sanity-check the emitted dollars/tokens against the
   provider's console (see "Verify against real data"). If you cannot, say so
   explicitly and mark live verification pending - do not imply it works.
+- **The PR description carries the emitted FOCUS record.** Every adapter (or
+  mapping) PR includes a sample of the FOCUS 1.2 record the change produces -
+  the actual JSON from the mapper (`FromUsage` -> JSON sink), not a hand-written
+  approximation - plus the column-to-source mapping. It is the adapter's FOCUS
+  spec, reviewed with the code. When the mapping or the FOCUS spec changes, the
+  sample in the PR (and the mapping table in `docs/providers/<name>.md`) is
+  updated in the same change so they never drift from what the code emits.
 - **Run the gate** (bottom of this file) before reporting any change done.
 
 ## What this tool is
