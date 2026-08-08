@@ -1,7 +1,27 @@
 # AGENTS.md - focus-exporter
 
 Conventions for this repo. Follow them so new provider adapters look like the
-ones already shipped (PlanetScale, Anthropic, OpenAI).
+ones already shipped (PlanetScale, Anthropic, OpenAI, Confluent, OpenRouter).
+
+## Every change ships as one unit
+
+Code, docs, and tests move together in the same change - never one without the
+others.
+
+- **Docs track the code.** Any change to a flag, env var, provider, FOCUS
+  mapping, or behaviour updates the docs in the same commit: the affected
+  `docs/providers/<name>.md`, the Integrations table and flag table in
+  `README.md`, and `CHANGELOG.md` under `## [Unreleased]`. A new provider also
+  adds a logo row to the README table. Stale docs are a defect, not a follow-up.
+- **Tests come with the code.** Every new adapter, function, or behaviour change
+  ships a test in the same change (table-driven, hermetic - see Tests below). A
+  change with no test is not done.
+- **Verify before you claim done.** Fixtures passing is not proof. Run the real
+  code path and check the output, and for an adapter run it against a live key
+  over a recent window and sanity-check the emitted dollars/tokens against the
+  provider's console (see "Verify against real data"). If you cannot, say so
+  explicitly and mark live verification pending - do not imply it works.
+- **Run the gate** (bottom of this file) before reporting any change done.
 
 ## What this tool is
 
