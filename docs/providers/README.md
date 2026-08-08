@@ -16,6 +16,7 @@ run an export.
 | Confluent Cloud | Event streaming (Kafka) | Cloud API key | [confluent.md](confluent.md) |
 | OpenRouter | AI gateway (multi-provider) | Management key | [openrouter.md](openrouter.md) |
 | Modal | Serverless GPU / compute | Token id + secret | [modal.md](modal.md) |
+| KeywordsAI | AI gateway / observability | API key | [keywordsai.md](keywordsai.md) |
 
 ## Documenting a new provider
 
