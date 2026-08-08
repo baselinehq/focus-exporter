@@ -77,7 +77,7 @@ usage stays distinguishable without double-counting.
 | `SkuPriceId` (token) | `model\|bucket` |
 | `x_TokenType` | token bucket |
 | `x_ModelRequests` | `num_model_requests` |
-| `BillingAccountId` | `OPENAI_ORG_ID`, when set |
+| `BillingAccountId` | `OPENAI_ORG_ID` (required) |
 
 ## Example
 
@@ -92,9 +92,10 @@ focus-exporter --provider openai --start 2026-07-01 --end 2026-08-01 --format js
   `line_item`, so we cannot attribute dollar cost to a specific model or token
   bucket the way the Anthropic adapter does. Token records carry usage without
   cost; cost records carry dollars without tokens.
-- **`--start` is required, `--end` optional.** The API requires `start_time`;
-  the CLI rejects an open-ended window for this provider. `--end` maps to
-  `end_time` and is only sent when given.
+- **A window is required.** Pass `--start` and `--end` together (or `--month`);
+  the CLI rejects an open-ended export for this provider because the API
+  requires `start_time`. `--start` maps to `start_time` and `--end` to
+  `end_time`.
 - **Granularity is daily** (`bucket_width=1d`).
 - **Cache-write tokens** (`input_cache_write_tokens`, billed at a premium on
   newer models) map to the `cache_creation` bucket; cached reads map to
