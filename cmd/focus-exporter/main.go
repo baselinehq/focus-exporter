@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/baselinehq/focus-exporter/pkg/integrations"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/anthropic"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/confluent"
+	"github.com/baselinehq/focus-exporter/pkg/integrations/helicone"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/keywordsai"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/modal"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/openai"
@@ -49,6 +51,7 @@ func defaultRegistry() *integrations.Registry {
 		openrouter.Provider,
 		modal.Provider,
 		keywordsai.Provider,
+		helicone.Provider,
 	} {
 		reg.Add(p)
 	}
@@ -93,11 +96,12 @@ func run(reg *integrations.Registry, args []string, env func(string) string, std
 	}
 
 	get := newHTTPGet(30 * time.Second)
+	post := newHTTPPost(30 * time.Second)
 	ctx := context.Background()
 
 	records := []focus.Record{}
 	for _, name := range providers {
-		src, err := reg.Build(name, get, env)
+		src, err := reg.Build(name, get, post, env)
 		if err != nil {
 			return err
 		}
@@ -194,31 +198,46 @@ func newHTTPGet(timeout time.Duration) integrations.HTTPGet {
 		if err != nil {
 			return nil, err
 		}
-		for k, v := range headers {
-			req.Header.Set(k, v)
-		}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer func() {
-			if cerr := resp.Body.Close(); cerr != nil {
-				log.Printf("closing response body for %s: %v", rawURL, cerr)
-			}
-		}()
-		const maxBody = 64 << 20
-		body, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
-		if err != nil {
-			return nil, err
-		}
-		if len(body) > maxBody {
-			return nil, fmt.Errorf("GET %s: response exceeds %d bytes", rawURL, maxBody)
-		}
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, fmt.Errorf("GET %s: status %d: %s", rawURL, resp.StatusCode, snippet(body))
-		}
-		return body, nil
+		return doRequest(client, req, headers)
 	}
+}
+
+func newHTTPPost(timeout time.Duration) integrations.HTTPPost {
+	client := &http.Client{Timeout: timeout}
+	return func(ctx context.Context, rawURL string, headers map[string]string, body []byte) ([]byte, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, rawURL, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		return doRequest(client, req, headers)
+	}
+}
+
+func doRequest(client *http.Client, req *http.Request, headers map[string]string) ([]byte, error) {
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Printf("closing response body for %s: %v", req.URL, cerr)
+		}
+	}()
+	const maxBody = 64 << 20
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(body) > maxBody {
+		return nil, fmt.Errorf("%s %s: response exceeds %d bytes", req.Method, req.URL, maxBody)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("%s %s: status %d: %s", req.Method, req.URL, resp.StatusCode, snippet(body))
+	}
+	return body, nil
 }
 
 func snippet(body []byte) string {

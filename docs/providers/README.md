@@ -17,6 +17,7 @@ run an export.
 | OpenRouter | AI gateway (multi-provider) | Management key | [openrouter.md](openrouter.md) |
 | Modal | Serverless GPU / compute | Token id + secret | [modal.md](modal.md) |
 | KeywordsAI | AI gateway / observability | API key | [keywordsai.md](keywordsai.md) |
+| Helicone | AI gateway / observability | API key | [helicone.md](helicone.md) |
 
 ## Documenting a new provider
 
