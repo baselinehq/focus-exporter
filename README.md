@@ -52,7 +52,9 @@ cd focus-exporter
 go build ./cmd/focus-exporter
 ```
 
-Requires Go 1.26+. No runtime dependencies beyond the standard library.
+Requires Go 1.26+. Dependencies are kept minimal: `golang.org/x/text` and
+`shopspring/decimal`, plus `google.golang.org/grpc` and `protobuf` for the one
+provider (Modal) whose billing API is gRPC-only.
 
 ## Usage
 

@@ -43,7 +43,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   self-hosted model inference (Moondream, Qwen-VL) running on Modal. Registered
   as `--provider modal` (env `MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET` /
   `MODAL_WORKSPACE_ID`). Adds `google.golang.org/grpc` and
-  `google.golang.org/protobuf` as the first non-`x/*` runtime dependencies.
+  `google.golang.org/protobuf` as runtime dependencies (alongside the existing
+  `shopspring/decimal`).
 - Confluent Cloud adapter: one FOCUS 1.2 record per `/billing/v1/costs` line item
   (real billed `amount` in dollars, `resource` id/name, `product`/`line_type`
   SKU), invoice-cost shape. Basic auth; `metadata.next` pagination; promo/negative

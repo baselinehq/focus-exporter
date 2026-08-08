@@ -94,4 +94,5 @@ const (
 	ServiceSubcategoryGenerativeAI       ServiceSubcategory = "Generative AI"
 	ServiceSubcategoryManagedDatabase    ServiceSubcategory = "Managed Database"
 	ServiceSubcategoryStreamingAnalytics ServiceSubcategory = "Streaming Analytics"
+	ServiceSubcategoryServerlessCompute  ServiceSubcategory = "Serverless Compute"
 )

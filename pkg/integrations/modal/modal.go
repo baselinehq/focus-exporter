@@ -3,9 +3,11 @@ package modal
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"strings"
 	"time"
 
@@ -20,9 +22,18 @@ import (
 )
 
 const (
-	Name     = "modal"
-	endpoint = "api.modal.com:443"
+	Name        = "modal"
+	endpoint    = "api.modal.com:443"
+	callTimeout = 2 * time.Minute
 )
+
+func validAmount(s string) bool {
+	if s == "" {
+		return false
+	}
+	_, ok := new(big.Rat).SetString(s)
+	return ok
+}
 
 type reporter func(ctx context.Context, start, end time.Time) ([]*modalpb.WorkspaceBillingReportItem, error)
 
@@ -34,7 +45,7 @@ type source struct {
 	accountID string
 }
 
-func New(tokenID, tokenSecret, accountID string) integrations.Source {
+func New(_ integrations.HTTPGet, tokenID, tokenSecret, accountID string) integrations.Source {
 	return newSource(grpcReporter(tokenID, tokenSecret), grpcSummarizer(tokenID, tokenSecret), accountID)
 }
 
@@ -51,7 +62,12 @@ func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.Usage
 	}
 	out := []model.UsageRecord{}
 	for _, item := range items {
-		if item.GetCost() == "" {
+		if !validAmount(item.GetCost()) {
+			log.Printf("modal: skipping %q: unparseable cost %q", item.GetObjectId(), item.GetCost())
+			continue
+		}
+		if item.GetInterval() == nil {
+			log.Printf("modal: skipping %q: missing interval", item.GetObjectId())
 			continue
 		}
 		out = append(out, s.toRecord(item))
@@ -121,24 +137,25 @@ func adjustmentClass(key string) (model.ChargeCategory, model.PricingCategory, s
 func (s *source) toRecord(item *modalpb.WorkspaceBillingReportItem) model.UsageRecord {
 	cost := model.Dec(item.GetCost())
 	rec := model.UsageRecord{
-		Provider:          "Modal",
-		Publisher:         "Modal",
-		InvoiceIssuer:     "Modal",
-		ServiceName:       "Modal",
-		ServiceCategory:   model.ServiceCategoryCompute,
-		ChargeCategory:    model.ChargeUsage,
-		ChargeFrequency:   model.ChargeFrequencyUsageBased,
-		PricingCategory:   model.PricingStandard,
-		Currency:          "USD",
-		PricingCurrency:   "USD",
-		BillingAccountID:  s.accountID,
-		Day:               item.GetInterval().AsTime().UTC(),
-		Cost:              &cost,
-		ResourceID:        item.GetObjectId(),
-		ResourceName:      item.GetDescription(),
-		ResourceType:      objectType(item.GetObjectId()),
-		SkuID:             item.GetObjectId(),
-		ChargeDescription: chargeDescription(item),
+		Provider:           "Modal",
+		Publisher:          "Modal",
+		InvoiceIssuer:      "Modal",
+		ServiceName:        "Modal",
+		ServiceCategory:    model.ServiceCategoryCompute,
+		ServiceSubcategory: model.ServiceSubcategoryServerlessCompute,
+		ChargeCategory:     model.ChargeUsage,
+		ChargeFrequency:    model.ChargeFrequencyUsageBased,
+		PricingCategory:    model.PricingStandard,
+		Currency:           "USD",
+		PricingCurrency:    "USD",
+		BillingAccountID:   s.accountID,
+		Day:                item.GetInterval().AsTime().UTC(),
+		Cost:               &cost,
+		ResourceID:         item.GetObjectId(),
+		ResourceName:       item.GetDescription(),
+		ResourceType:       objectType(item.GetObjectId()),
+		SkuID:              item.GetObjectId(),
+		ChargeDescription:  chargeDescription(item),
 	}
 	if details := stringMap(item.GetCostByResource()); details != nil {
 		rec.SkuPriceDetails = details
@@ -217,17 +234,20 @@ func grpcReporter(tokenID, tokenSecret string) reporter {
 			return nil, err
 		}
 		defer func() {
-			if cerr := conn.Close(); cerr != nil && err == nil {
-				err = fmt.Errorf("modal: close: %w", cerr)
+			if cerr := conn.Close(); cerr != nil {
+				err = errors.Join(err, fmt.Errorf("modal: close: %w", cerr))
 			}
 		}()
+
+		ctx, cancel := context.WithTimeout(authContext(ctx, tokenID, tokenSecret), callTimeout)
+		defer cancel()
 
 		req := &modalpb.WorkspaceBillingReportRequest{
 			StartTimestamp: timestamppb.New(start.UTC()),
 			EndTimestamp:   timestamppb.New(end.UTC()),
 			Resolution:     "d",
 		}
-		stream, err := client.WorkspaceBillingReport(authContext(ctx, tokenID, tokenSecret), req)
+		stream, err := client.WorkspaceBillingReport(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("modal: WorkspaceBillingReport: %w", err)
 		}
@@ -253,13 +273,16 @@ func grpcSummarizer(tokenID, tokenSecret string) summarizer {
 			return nil, err
 		}
 		defer func() {
-			if cerr := conn.Close(); cerr != nil && err == nil {
-				err = fmt.Errorf("modal: close: %w", cerr)
+			if cerr := conn.Close(); cerr != nil {
+				err = errors.Join(err, fmt.Errorf("modal: close: %w", cerr))
 			}
 		}()
 
+		ctx, cancel := context.WithTimeout(authContext(ctx, tokenID, tokenSecret), callTimeout)
+		defer cancel()
+
 		req := &modalpb.WorkspaceBillingSummaryRequest{StartTimestamp: timestamppb.New(start.UTC())}
-		summary, err = client.WorkspaceBillingSummary(authContext(ctx, tokenID, tokenSecret), req)
+		summary, err = client.WorkspaceBillingSummary(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("modal: WorkspaceBillingSummary: %w", err)
 		}
@@ -270,13 +293,13 @@ func grpcSummarizer(tokenID, tokenSecret string) summarizer {
 var Provider = integrations.Provider{
 	Name:         Name,
 	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
-	New: func(_ integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
 		tokenID := env("MODAL_TOKEN_ID")
 		tokenSecret := env("MODAL_TOKEN_SECRET")
 		workspace := env("MODAL_WORKSPACE_ID")
 		if tokenID == "" || tokenSecret == "" || workspace == "" {
 			return nil, fmt.Errorf("missing MODAL_TOKEN_ID / MODAL_TOKEN_SECRET / MODAL_WORKSPACE_ID env")
 		}
-		return New(tokenID, tokenSecret, workspace), nil
+		return New(get, tokenID, tokenSecret, workspace), nil
 	},
 }
