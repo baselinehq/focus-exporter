@@ -26,6 +26,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- KeywordsAI (respan.ai) adapter (LLM gateway): one FOCUS 1.2 record per
+  (day, model, upstream provider), aggregated client-side from the
+  `/api/request-logs/list/` per-request logs (paginated via `next`). Real
+  request spend (USD) as `BilledCost`, token counts as `x_` extensions.
+  Registered as `--provider keywordsai` (env `KEYWORDSAI_API_KEY` /
+  `KEYWORDSAI_ORG_ID`).
 - Charge completeness: adapters now capture non-usage charges (platform/plan
   fees, committed-use, credits, discounts, tax), classified by `ChargeCategory`,
   not just metered usage. Where a provider exposes a billed-total or summary the

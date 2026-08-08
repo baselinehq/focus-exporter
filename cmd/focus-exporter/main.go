@@ -15,6 +15,7 @@ import (
 	"github.com/baselinehq/focus-exporter/pkg/integrations"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/anthropic"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/confluent"
+	"github.com/baselinehq/focus-exporter/pkg/integrations/keywordsai"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/modal"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/openai"
 	"github.com/baselinehq/focus-exporter/pkg/integrations/openrouter"
@@ -47,6 +48,7 @@ func defaultRegistry() *integrations.Registry {
 		confluent.Provider,
 		openrouter.Provider,
 		modal.Provider,
+		keywordsai.Provider,
 	} {
 		reg.Add(p)
 	}
