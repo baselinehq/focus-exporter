@@ -31,7 +31,7 @@ type source struct {
 var Provider = integrations.Provider{
 	Name:         Name,
 	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
-	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	New: func(get integrations.HTTPGet, _ integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
 		adminKey := env("ANTHROPIC_ADMIN_KEY")
 		if adminKey == "" {
 			return nil, fmt.Errorf("missing ANTHROPIC_ADMIN_KEY env")

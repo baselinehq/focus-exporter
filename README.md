@@ -23,7 +23,8 @@ as `x_`-prefixed extension columns, which conformant consumers ignore.
 | <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/confluent.svg" height="18" align="center"> **Confluent Cloud** | Streaming (Kafka) | billing line item (product x resource) | [confluent.md](docs/providers/confluent.md) |
 | <img src="https://cdn.simpleicons.org/openrouter/888888" height="18" align="center"> **OpenRouter** | AI gateway | day x model x upstream provider (credit spend) | [openrouter.md](docs/providers/openrouter.md) |
 | <img src="https://cdn.simpleicons.org/modal/888888" height="18" align="center"> **Modal** | Serverless GPU / compute | day x object (per-resource CPU/mem/GPU cost) | [modal.md](docs/providers/modal.md) |
-| **KeywordsAI** | AI gateway / observability | day x model x upstream provider (request spend) | [keywordsai.md](docs/providers/keywordsai.md) |
+| <img src="https://www.google.com/s2/favicons?domain=keywordsai.co&sz=64" height="18" align="center"> **KeywordsAI** | AI gateway / observability | day x model x upstream provider (request spend) | [keywordsai.md](docs/providers/keywordsai.md) |
+| <img src="https://www.google.com/s2/favicons?domain=helicone.ai&sz=64" height="18" align="center"> **Helicone** | AI gateway / observability | day x model x upstream provider (request spend) | [helicone.md](docs/providers/helicone.md) |
 
 One integration behind an LLM gateway (OpenRouter) captures spend across every
 model and upstream provider you route through it. Per-provider setup

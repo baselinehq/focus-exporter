@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "costUSD": 0.12,
+      "prompt_tokens": 1000,
+      "completion_tokens": 400,
+      "request_model": "gpt-4o",
+      "provider": "OPENAI",
+      "request_created_at": "2026-07-15T10:00:00Z"
+    },
+    {
+      "costUSD": 0.08,
+      "prompt_tokens": 500,
+      "completion_tokens": 200,
+      "request_model": "gpt-4o",
+      "provider": "OPENAI",
+      "request_created_at": "2026-07-15T14:00:00Z"
+    },
+    {
+      "costUSD": 0.30,
+      "prompt_tokens": 800,
+      "completion_tokens": 350,
+      "request_model": "claude-sonnet-4-5",
+      "provider": "ANTHROPIC",
+      "request_created_at": "2026-07-16T09:00:00Z"
+    },
+    {
+      "costUSD": 9.99,
+      "prompt_tokens": 10,
+      "completion_tokens": 10,
+      "request_model": "gpt-4o",
+      "provider": "OPENAI",
+      "request_created_at": "2026-06-01T00:00:00Z"
+    }
+  ]
+}

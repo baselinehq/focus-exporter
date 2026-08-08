@@ -1,11 +1,10 @@
-package keywordsai
+package helicone
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -14,38 +13,44 @@ import (
 )
 
 const (
-	Name       = "keywordsai"
-	baseURL    = "https://api.keywordsai.co"
-	pageSize   = 1000
+	Name       = "helicone"
+	queryURL   = "https://api.helicone.ai/v1/request/query"
+	pageLimit  = 1000
 	maxPages   = 1000
 	dateLayout = "2006-01-02"
 )
 
 type source struct {
-	get       integrations.HTTPGet
+	post      integrations.HTTPPost
 	key       string
 	accountID string
 }
 
-func New(get integrations.HTTPGet, apiKey, accountID string) integrations.Source {
-	return &source{get: get, key: apiKey, accountID: accountID}
+func New(post integrations.HTTPPost, apiKey, accountID string) integrations.Source {
+	return &source{post: post, key: apiKey, accountID: accountID}
 }
 
 func (s *source) Name() string { return Name }
 
-type logsPage struct {
-	Count   int      `json:"count"`
-	Next    string   `json:"next"`
-	Results []logRow `json:"results"`
+type queryResponse struct {
+	Data []requestRow `json:"data"`
 }
 
-type logRow struct {
+type requestRow struct {
+	CostUSD          json.Number `json:"costUSD"`
 	Cost             json.Number `json:"cost"`
 	PromptTokens     int64       `json:"prompt_tokens"`
 	CompletionTokens int64       `json:"completion_tokens"`
-	Model            string      `json:"model"`
-	ProviderID       string      `json:"provider_id"`
-	Timestamp        string      `json:"timestamp"`
+	RequestModel     string      `json:"request_model"`
+	Provider         string      `json:"provider"`
+	RequestCreatedAt string      `json:"request_created_at"`
+}
+
+func (r requestRow) cost() json.Number {
+	if r.CostUSD != "" {
+		return r.CostUSD
+	}
+	return r.Cost
 }
 
 type bucket struct {
@@ -63,48 +68,49 @@ func bucketKey(day time.Time, modelName, provider string) string {
 
 func (s *source) Fetch(ctx context.Context, start, end time.Time) ([]model.UsageRecord, error) {
 	if s.key == "" {
-		return nil, fmt.Errorf("keywordsai: missing API key")
-	}
-
-	endpoint, err := s.firstURL(start, end)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("helicone: missing API key")
 	}
 
 	buckets := map[string]*bucket{}
-	for page := 0; endpoint != "" && page < maxPages; page++ {
+	for page := 0; page < maxPages; page++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		var body logsPage
-		if err := s.getJSON(ctx, endpoint, &body); err != nil {
+		rows, err := s.query(ctx, start, end, page*pageLimit)
+		if err != nil {
 			return nil, err
 		}
-		for _, row := range body.Results {
-			accumulate(buckets, row)
+		for _, row := range rows {
+			accumulate(buckets, row, start, end)
 		}
-		endpoint = body.Next
+		if len(rows) < pageLimit {
+			break
+		}
 	}
 
 	return records(buckets, s.accountID), nil
 }
 
-func accumulate(buckets map[string]*bucket, row logRow) {
-	if row.Model == "" {
+func accumulate(buckets map[string]*bucket, row requestRow, start, end time.Time) {
+	if row.RequestModel == "" {
 		return
 	}
-	ts, err := time.Parse(time.RFC3339, row.Timestamp)
+	ts, err := time.Parse(time.RFC3339, row.RequestCreatedAt)
 	if err != nil {
 		return
 	}
-	day := ts.UTC().Truncate(24 * time.Hour)
-	key := bucketKey(day, row.Model, row.ProviderID)
+	ts = ts.UTC()
+	if ts.Before(start) || !ts.Before(end) {
+		return
+	}
+	day := ts.Truncate(24 * time.Hour)
+	key := bucketKey(day, row.RequestModel, row.Provider)
 	b := buckets[key]
 	if b == nil {
-		b = &bucket{cost: new(big.Rat), model: row.Model, provider: row.ProviderID, day: day}
+		b = &bucket{cost: new(big.Rat), model: row.RequestModel, provider: row.Provider, day: day}
 		buckets[key] = b
 	}
-	if c, ok := new(big.Rat).SetString(row.Cost.String()); ok {
+	if c, ok := new(big.Rat).SetString(row.cost().String()); ok {
 		b.cost.Add(b.cost, c)
 	}
 	b.promptTokens += row.PromptTokens
@@ -121,9 +127,9 @@ func records(buckets map[string]*bucket, accountID string) []model.UsageRecord {
 
 func toRecord(b *bucket, accountID string) model.UsageRecord {
 	rec := model.UsageRecord{
-		Provider:           "KeywordsAI",
-		Publisher:          "KeywordsAI",
-		InvoiceIssuer:      "KeywordsAI",
+		Provider:           "Helicone",
+		Publisher:          "Helicone",
+		InvoiceIssuer:      "Helicone",
 		ServiceName:        b.model,
 		ServiceCategory:    model.ServiceCategoryAIAndMachineLearning,
 		ServiceSubcategory: model.ServiceSubcategoryGenerativeAI,
@@ -169,46 +175,54 @@ func toRecord(b *bucket, accountID string) model.UsageRecord {
 	return rec
 }
 
-func (s *source) firstURL(start, end time.Time) (string, error) {
-	u, err := url.Parse(baseURL)
+func (s *source) query(ctx context.Context, start, end time.Time, offset int) ([]requestRow, error) {
+	body, err := json.Marshal(map[string]any{
+		"filter": map[string]any{
+			"left":     createdAtBound(start, "gte"),
+			"operator": "and",
+			"right":    createdAtBound(end, "lt"),
+		},
+		"offset": offset,
+		"limit":  pageLimit,
+		"sort":   map[string]any{"created_at": "desc"},
+	})
 	if err != nil {
-		return "", fmt.Errorf("keywordsai: invalid base url: %w", err)
+		return nil, fmt.Errorf("helicone: encode query: %w", err)
 	}
-	u = u.JoinPath("api", "request-logs", "list")
-	q := u.Query()
-	q.Set("page_size", strconv.Itoa(pageSize))
-	q.Set("start_time", start.UTC().Format(time.RFC3339))
-	if !end.IsZero() {
-		q.Set("end_time", end.UTC().Format(time.RFC3339))
+
+	raw, err := s.post(ctx, queryURL, map[string]string{
+		"Authorization": "Bearer " + s.key,
+		"Content-Type":  "application/json",
+		"Accept":        "application/json",
+	}, body)
+	if err != nil {
+		return nil, err
 	}
-	u.RawQuery = q.Encode()
-	return u.String(), nil
+
+	var resp queryResponse
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return nil, fmt.Errorf("helicone: decode response: %w", err)
+	}
+	return resp.Data, nil
 }
 
-func (s *source) getJSON(ctx context.Context, endpoint string, out any) error {
-	headers := map[string]string{
-		"Authorization": "Bearer " + s.key,
-		"Accept":        "application/json",
+func createdAtBound(t time.Time, op string) map[string]any {
+	return map[string]any{
+		"request": map[string]any{
+			"created_at": map[string]any{op: t.UTC().Format(time.RFC3339)},
+		},
 	}
-	body, err := s.get(ctx, endpoint, headers)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(body, out); err != nil {
-		return fmt.Errorf("keywordsai: decode %s: %w", endpoint, err)
-	}
-	return nil
 }
 
 var Provider = integrations.Provider{
 	Name:         Name,
 	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
-	New: func(get integrations.HTTPGet, _ integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
-		key := env("KEYWORDSAI_API_KEY")
-		orgID := env("KEYWORDSAI_ORG_ID")
+	New: func(_ integrations.HTTPGet, post integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
+		key := env("HELICONE_API_KEY")
+		orgID := env("HELICONE_ORG_ID")
 		if key == "" || orgID == "" {
-			return nil, fmt.Errorf("missing KEYWORDSAI_API_KEY / KEYWORDSAI_ORG_ID env")
+			return nil, fmt.Errorf("missing HELICONE_API_KEY / HELICONE_ORG_ID env")
 		}
-		return New(get, key, orgID), nil
+		return New(post, key, orgID), nil
 	},
 }

@@ -30,7 +30,7 @@ func (f fakeSource) Fetch(ctx context.Context, start, end time.Time) ([]model.Us
 }
 
 func fakeFactory(src integrations.Source, err error) integrations.Factory {
-	return func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	return func(get integrations.HTTPGet, post integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
 		return src, err
 	}
 }

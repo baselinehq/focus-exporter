@@ -15,7 +15,9 @@ type Source interface {
 
 type HTTPGet func(ctx context.Context, url string, headers map[string]string) ([]byte, error)
 
-type Factory func(get HTTPGet, env func(string) string) (Source, error)
+type HTTPPost func(ctx context.Context, url string, headers map[string]string, body []byte) ([]byte, error)
+
+type Factory func(get HTTPGet, post HTTPPost, env func(string) string) (Source, error)
 
 type Capabilities struct {
 	RequiresTimeRange bool
@@ -57,10 +59,10 @@ func (r *Registry) Capabilities(name string) (Capabilities, bool) {
 	return e.caps, ok
 }
 
-func (r *Registry) Build(name string, get HTTPGet, env func(string) string) (Source, error) {
+func (r *Registry) Build(name string, get HTTPGet, post HTTPPost, env func(string) string) (Source, error) {
 	e, ok := r.entries[name]
 	if !ok {
 		return nil, fmt.Errorf("integrations: unknown provider %q", name)
 	}
-	return e.factory(get, env)
+	return e.factory(get, post, env)
 }

@@ -28,7 +28,7 @@ type source struct {
 
 var Provider = integrations.Provider{
 	Name: Name,
-	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	New: func(get integrations.HTTPGet, _ integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
 		org := env("PLANETSCALE_ORG")
 		tokenID := env("PLANETSCALE_SERVICE_TOKEN_ID")
 		token := env("PLANETSCALE_SERVICE_TOKEN")

@@ -26,6 +26,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- HTTP POST seam (`integrations.HTTPPost`) alongside the GET seam, so adapters
+  for providers whose API needs a request body (e.g. a JSON query filter) stay
+  hermetically testable. Provider factories now receive both a GET and a POST
+  client.
+- Helicone adapter (LLM gateway): one FOCUS 1.2 record per (day, model, upstream
+  provider), aggregated client-side from `POST /v1/request/query` (paginated via
+  `offset`/`limit`). Real request spend (USD, `costUSD`) as `BilledCost`, token
+  counts as `x_` extensions. Registered as `--provider helicone` (env
+  `HELICONE_API_KEY` / `HELICONE_ORG_ID`).
 - KeywordsAI (respan.ai) adapter (LLM gateway): one FOCUS 1.2 record per
   (day, model, upstream provider), aggregated client-side from the
   `/api/request-logs/list/` per-request logs (paginated via `next`). Real

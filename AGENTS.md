@@ -58,10 +58,13 @@ internal/gen/                FOCUS-type generator (go:generate)
 ## The seams (do not bypass)
 
 - **`integrations.Source`**: `Name() string` + `Fetch(ctx, start, end) ([]model.UsageRecord, error)`.
-- **`integrations.HTTPGet`** `func(ctx, url, headers) ([]byte, error)`: the
-  default way an adapter does HTTP. It is injected, so adapters are tested
-  against fixtures with **no network and no credentials**. Never import
-  `net/http` in an HTTP adapter; the CLI provides the real client. A non-HTTP
+- **`integrations.HTTPGet`** `func(ctx, url, headers) ([]byte, error)` and
+  **`integrations.HTTPPost`** `func(ctx, url, headers, body) ([]byte, error)`:
+  the way an adapter does HTTP. Both are injected (a provider factory receives
+  both), so adapters are tested against fixtures with **no network and no
+  credentials**. Use POST for providers whose API needs a request body (e.g. a
+  JSON query filter, like Helicone). Never import `net/http` in an HTTP adapter;
+  the CLI provides the real clients. A non-HTTP
   provider (e.g. Modal over gRPC) owns its own client, but still keeps the same
   testability contract: put the transport behind a small injected function type
   (Modal's `reporter`) so `Fetch` is tested against in-memory items with no

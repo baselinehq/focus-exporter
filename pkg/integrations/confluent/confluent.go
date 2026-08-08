@@ -32,7 +32,7 @@ type source struct {
 var Provider = integrations.Provider{
 	Name:         Name,
 	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
-	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	New: func(get integrations.HTTPGet, _ integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
 		keyID := env("CONFLUENT_CLOUD_API_KEY")
 		secret := env("CONFLUENT_CLOUD_API_SECRET")
 		orgID := env("CONFLUENT_ORG_ID")

@@ -293,7 +293,7 @@ func grpcSummarizer(tokenID, tokenSecret string) summarizer {
 var Provider = integrations.Provider{
 	Name:         Name,
 	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
-	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	New: func(get integrations.HTTPGet, _ integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
 		tokenID := env("MODAL_TOKEN_ID")
 		tokenSecret := env("MODAL_TOKEN_SECRET")
 		workspace := env("MODAL_WORKSPACE_ID")

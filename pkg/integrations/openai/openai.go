@@ -36,7 +36,7 @@ func New(get integrations.HTTPGet, adminKey, accountID string) integrations.Sour
 var Provider = integrations.Provider{
 	Name:         Name,
 	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
-	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	New: func(get integrations.HTTPGet, _ integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
 		adminKey := env("OPENAI_ADMIN_KEY")
 		orgID := env("OPENAI_ORG_ID")
 		if adminKey == "" || orgID == "" {

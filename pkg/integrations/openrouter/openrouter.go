@@ -34,7 +34,7 @@ func New(get integrations.HTTPGet, managementKey, accountID string) integrations
 var Provider = integrations.Provider{
 	Name:         Name,
 	Capabilities: integrations.Capabilities{RequiresTimeRange: true},
-	New: func(get integrations.HTTPGet, env func(string) string) (integrations.Source, error) {
+	New: func(get integrations.HTTPGet, _ integrations.HTTPPost, env func(string) string) (integrations.Source, error) {
 		key := env("OPENROUTER_MANAGEMENT_KEY")
 		orgID := env("OPENROUTER_ORG_ID")
 		if key == "" || orgID == "" {
