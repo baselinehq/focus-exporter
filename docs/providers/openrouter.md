@@ -70,6 +70,15 @@ focus-exporter --provider openrouter --start 2026-07-01 --end 2026-08-01 --forma
 - **Cost is per (model, provider), not per token bucket.** OpenRouter reports one
   `usage` figure per model/provider per day, so cost is not split into input vs
   output; the token breakdown rides as `x_` extensions.
+- **Gateway fees are not captured (API gap).** Reported `BilledCost` is inference
+  credit spend only. OpenRouter's revenue also comes from a deposit fee (~5% +
+  a fixed amount on each credit top-up) and the BYOK surcharge, but the API
+  exposes neither: `/api/v1/credits` returns only aggregate
+  `total_credits`/`total_usage`, and there is no transactions endpoint. So total
+  `BilledCost` understates actual cash paid to OpenRouter by the deposit fee. If
+  a transactions/fee API appears, those would be emitted as
+  `ChargeCategory = "Purchase"` records (see the charge-completeness rule in
+  AGENTS.md); until then they cannot be reported without fabricating them.
 - Wait ~30 minutes past a UTC day boundary before pulling that day (late-finishing
   requests are attributed by start time). Dates outside the last ~30 completed UTC
   days return HTTP 400; the adapter logs and skips them rather than failing the run.

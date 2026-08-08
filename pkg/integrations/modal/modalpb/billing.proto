@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package modal.client;
+
+option go_package = "github.com/baselinehq/focus-exporter/pkg/integrations/modal/modalpb";
+
+import "google/protobuf/timestamp.proto";
+
+message WorkspaceBillingReportItem {
+  string object_id = 1;
+  string description = 2;
+  string environment_name = 3;
+  google.protobuf.Timestamp interval = 4;
+  string cost = 5;
+  map<string, string> tags = 6;
+  map<string, string> cost_by_resource = 8;
+}
+
+message WorkspaceBillingReportRequest {
+  google.protobuf.Timestamp start_timestamp = 1;
+  google.protobuf.Timestamp end_timestamp = 2;
+  string resolution = 3;
+  repeated string tag_names = 4;
+  repeated string environment_ids = 5;
+  repeated string app_ids = 6;
+}
+
+message WorkspaceBillingSummaryRequest {
+  google.protobuf.Timestamp start_timestamp = 1;
+}
+
+message WorkspaceBillingSummaryResponse {
+  google.protobuf.Timestamp start_timestamp = 1;
+  google.protobuf.Timestamp end_timestamp = 2;
+  string metered_cost = 3;
+  string billed_cost = 4;
+  map<string, string> metered_cost_breakdown = 5;
+  map<string, string> adjustments = 6;
+}
+
+service ModalClient {
+  rpc WorkspaceBillingReport(WorkspaceBillingReportRequest) returns (stream WorkspaceBillingReportItem);
+  rpc WorkspaceBillingSummary(WorkspaceBillingSummaryRequest) returns (WorkspaceBillingSummaryResponse);
+}

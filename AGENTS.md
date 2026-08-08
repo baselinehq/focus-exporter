@@ -21,14 +21,27 @@ others.
   over a recent window and sanity-check the emitted dollars/tokens against the
   provider's console (see "Verify against real data"). If you cannot, say so
   explicitly and mark live verification pending - do not imply it works.
+- **The PR description carries the emitted FOCUS record.** Every adapter (or
+  mapping) PR includes a sample of the FOCUS 1.2 record the change produces -
+  the actual JSON from the mapper (`FromUsage` -> JSON sink), not a hand-written
+  approximation - plus the column-to-source mapping. It is the adapter's FOCUS
+  spec, reviewed with the code. When the mapping or the FOCUS spec changes, the
+  sample in the PR (and the mapping table in `docs/providers/<name>.md`) is
+  updated in the same change so they never drift from what the code emits.
 - **Run the gate** (bottom of this file) before reporting any change done.
 
 ## What this tool is
 
-A standalone Go binary, **stdlib-only at runtime** (no third-party deps in
-non-test code), that pulls a provider's own billing/usage API and emits FinOps
-**FOCUS 1.2** records as JSON or CSV. Gateway-independent: no shared service, no
-database. Each provider is a small adapter behind one interface.
+A standalone Go binary that pulls a provider's own billing/usage API and emits
+FinOps **FOCUS 1.2** records as JSON or CSV. Gateway-independent: no shared
+service, no database. Each provider is a small adapter behind one interface.
+
+Dependencies are kept **minimal and well-chosen**, not zero: stdlib first, then
+`golang.org/x/*`, then a de-facto-standard library only when a format or
+protocol genuinely needs one (`shopspring/decimal` for money,
+`google.golang.org/grpc` + `protobuf` for the one provider - Modal - whose
+billing is gRPC-only). Do not add a dependency an adapter could reasonably do
+without; when in doubt, prefer the stdlib.
 
 ## Layout
 
@@ -45,10 +58,14 @@ internal/gen/                FOCUS-type generator (go:generate)
 ## The seams (do not bypass)
 
 - **`integrations.Source`**: `Name() string` + `Fetch(ctx, start, end) ([]model.UsageRecord, error)`.
-- **`integrations.HTTPGet`** `func(ctx, url, headers) ([]byte, error)`: the ONLY
-  way an adapter does HTTP. It is injected, so adapters are tested against
-  fixtures with **no network and no credentials**. Never import `net/http` in an
-  adapter; the CLI provides the real client.
+- **`integrations.HTTPGet`** `func(ctx, url, headers) ([]byte, error)`: the
+  default way an adapter does HTTP. It is injected, so adapters are tested
+  against fixtures with **no network and no credentials**. Never import
+  `net/http` in an HTTP adapter; the CLI provides the real client. A non-HTTP
+  provider (e.g. Modal over gRPC) owns its own client, but still keeps the same
+  testability contract: put the transport behind a small injected function type
+  (Modal's `reporter`) so `Fetch` is tested against in-memory items with no
+  network - never dial in a unit test.
 - **`model.UsageRecord`**: domain-agnostic FOCUS-core fields + an `Extensions`
   bag for `x_`-prefixed columns. Adapters fill this; `focus.FromUsage` maps it to
   the generated `focus.Record`. Add a field here (and map it in `FromUsage`)
@@ -63,6 +80,14 @@ internal/gen/                FOCUS-type generator (go:generate)
 3. **token + separate cost** (OpenAI): when the cost API can't be joined to
    models, emit token records (no cost) and coarse cost records (no tokens);
    document the split grain.
+4. **gateway** (OpenRouter): one record per (day, model, upstream provider) with
+   real billed spend; keep pass-through/BYOK spend out of `BilledCost`.
+5. **gRPC / streaming** (Modal): provider with no REST billing API. A trimmed
+   `.proto` (billing messages + the one RPC, matching the vendor's package and
+   service name) lives under `<adapter>/modalpb/`; regenerate the checked-in
+   `*.pb.go` with `buf generate` (not wired into `go generate ./...`, which must
+   stay dependency-free). Generated `*.pb.go` are exempt from the no-comments
+   rule and from deadcode (the grpc plugin emits unused server-side types).
 
 ## Rules for a new adapter
 
@@ -76,6 +101,17 @@ internal/gen/                FOCUS-type generator (go:generate)
   `BillingAccountId` is a mandatory FOCUS column: resolve it from the API when
   there's an endpoint (e.g. Anthropic `/organizations/me`), otherwise require an
   org-id env in the factory so it is never empty.
+- **Capture every charge, not just usage.** A provider bills more than metered
+  usage - platform/plan fees, deposit/payment fees, minimums, committed-use
+  charges, free credits, discounts, tax. Classify each by `ChargeCategory`:
+  metered usage -> `Usage`, fees/purchases -> `Purchase`, credits/discounts ->
+  `Credit`, tax -> `Tax`, other reconciling deltas -> `Adjustment`. When the
+  provider exposes a billed-total or summary (e.g. Modal `WorkspaceBillingSummary`
+  gives `metered_cost` vs `billed_cost` plus an `adjustments` map), emit the
+  non-usage charges as their own records so `sum(BilledCost)` reconciles to the
+  invoice. When the API does NOT expose a charge (e.g. OpenRouter deposit fees
+  and BYOK surcharge - no transactions endpoint), say so in the provider doc's
+  limitations; never fabricate a fee.
 - **No float drift on money**: decode amounts as `json.Number` or a decimal
   string; never parse to `float64` and re-format. Cents vs dollars: verify per
   API and convert exactly (`math/big.Rat`).
