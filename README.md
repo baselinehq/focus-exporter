@@ -9,11 +9,24 @@ A standalone Go binary that pulls a provider's own cost/usage API and emits
 
 It is gateway-independent (no shared service, no database) and domain-agnostic:
 each provider is a small adapter behind one interface, so the same tool exports
-infrastructure cost and, later, AI model cost. The first shipped provider is
-**PlanetScale**, whose monthly invoices map cleanly onto native FOCUS columns
-(real `ResourceId`, `RegionName`, `SkuMeter`); the only vendor-specific
-extension is `x_InfraProvider` (the underlying cloud), everything else is
-native.
+managed-infrastructure cost, streaming-platform cost, and AI model/token cost
+into one normalized FOCUS schema. Fields FOCUS does not yet model natively ride
+as `x_`-prefixed extension columns, which conformant consumers ignore.
+
+## Integrations
+
+| Provider | Category | Grain exported | Setup |
+| --- | --- | --- | --- |
+| <img src="https://cdn.simpleicons.org/planetscale/888888" height="18" align="center"> **PlanetScale** | Managed database | invoice month x database x billing metric | [planetscale.md](docs/providers/planetscale.md) |
+| <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/anthropic.svg" height="18" align="center"> **Anthropic** | AI / LLM | day x model x token bucket (cost + tokens) | [anthropic.md](docs/providers/anthropic.md) |
+| <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openai.svg" height="18" align="center"> **OpenAI** | AI / LLM | day x model x token bucket + line-item cost | [openai.md](docs/providers/openai.md) |
+| <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/confluent.svg" height="18" align="center"> **Confluent Cloud** | Streaming (Kafka) | billing line item (product x resource) | [confluent.md](docs/providers/confluent.md) |
+| <img src="https://cdn.simpleicons.org/openrouter/888888" height="18" align="center"> **OpenRouter** | AI gateway | day x model x upstream provider (credit spend) | [openrouter.md](docs/providers/openrouter.md) |
+
+One integration behind an LLM gateway (OpenRouter) captures spend across every
+model and upstream provider you route through it. Per-provider setup
+(environment variables, credential scopes, API endpoints, and the full FOCUS
+mapping) lives under [docs/providers/](docs/providers/).
 
 ## Why FOCUS 1.2
 
@@ -56,39 +69,19 @@ Flags:
 | `--format` | `json` or `csv` | `json` |
 | `-o`, `--out` | Output file | stdout |
 
-Provide either `--month` or `--start`/`--end` (not both). With no window flags
-at all, the exporter fetches the entire period the provider makes available.
+Provide either `--month` or `--start`/`--end` together (not both, and `--start`
+without `--end` is rejected). With no window flags at all, the exporter fetches
+the entire period the provider makes available - except providers whose API
+mandates a start time (the AI/streaming ones), which require an explicit window.
 
-A provider that fails at fetch time is logged to stderr and skipped; the run
-still emits the records it could gather. A provider that cannot be built at all
-(unknown name, or missing credentials) is a fatal error, so a misconfigured
-export never silently produces an empty file.
+Every emitted record is validated against the FOCUS 1.2 mandatory-column rules
+before it is written; a record that would violate them fails the run rather than
+producing non-conformant output. A provider that fails at fetch time is logged
+to stderr and skipped; a provider that cannot be built at all (unknown name or
+missing credentials) is a fatal error, so a misconfigured export never silently
+produces an empty file.
 
-## Providers
-
-Per-provider setup (environment variables, credential scopes, API endpoints,
-FOCUS mapping) is documented under [docs/providers/](docs/providers/).
-
-### PlanetScale
-
-Full setup: [docs/providers/planetscale.md](docs/providers/planetscale.md).
-
-Exports one FOCUS record per (invoice month, database, billing metric) from the
-PlanetScale billing API.
-
-Authentication uses a [service token](https://api-docs.planetscale.com/reference/service-tokens):
-
-```bash
-export PLANETSCALE_ORG=your-org
-export PLANETSCALE_SERVICE_TOKEN_ID=xxxxxxxxxxxx
-export PLANETSCALE_SERVICE_TOKEN=pscale_tkn_...
-focus-exporter --provider planetscale --month 2026-07
-```
-
-The service token needs read access to the organization's invoices and
-databases.
-
-Example output:
+## Example output (PlanetScale)
 
 ```json
 {
@@ -96,6 +89,8 @@ Example output:
   "EffectiveCost": "30.0",
   "ListCost": "30.0",
   "BillingCurrency": "USD",
+  "BillingPeriodStart": "2026-07-01T00:00:00Z",
+  "BillingPeriodEnd": "2026-08-01T00:00:00Z",
   "ChargePeriodStart": "2026-07-01T00:00:00Z",
   "ChargePeriodEnd": "2026-08-01T00:00:00Z",
   "Provider": "PlanetScale",
@@ -116,15 +111,6 @@ Example output:
 }
 ```
 
-Notes on PlanetScale mapping:
-
-- `subtotal` fills `BilledCost`, `EffectiveCost`, and `ListCost`; there is no
-  separate negotiated rate on the invoice.
-- Credit and proration lines are surfaced as-is, including negative costs.
-- `ChargePeriod` equals `BillingPeriod` (the calendar month): the invoice API
-  only exposes monthly line items, so there is no finer charge granularity.
-- The underlying cloud (`aws` / `gcp`) is carried as `x_InfraProvider`.
-
 ## FOCUS record type
 
 `pkg/focus` holds the canonical FOCUS 1.2 record. The struct is generated from
@@ -142,11 +128,17 @@ column.
 
 ## Adding a provider
 
-1. Create `pkg/integrations/<provider>/` with a `New(...) integrations.Source`.
-2. Implement `Fetch(ctx, start, end) ([]model.UsageRecord, error)`, filling the
-   FOCUS-core fields on `model.UsageRecord` (and `Extensions` for any `x_`
-   columns).
-3. Register it in the CLI's registry.
+See [AGENTS.md](AGENTS.md) for the full conventions. In short:
+
+1. Create `pkg/integrations/<provider>/` with a
+   `New(get integrations.HTTPGet, ...creds) integrations.Source` constructor and
+   a `Fetch(ctx, start, end) ([]model.UsageRecord, error)` that fills the
+   FOCUS-core fields on `model.UsageRecord` (and `Extensions` for `x_` columns).
+2. Expose a package-level `var Provider = integrations.Provider{...}` that reads
+   the provider's env vars, and add it to `defaultRegistry` in
+   `cmd/focus-exporter/main.go` (one line, no factory in the CLI).
+3. Add `docs/providers/<provider>.md`, a row to the Integrations table above,
+   and hermetic tests under `pkg/integrations/<provider>/testdata/`.
 
 `model.UsageRecord` is domain-agnostic: infrastructure providers fill the
 resource/region/period fields, and model providers add token detail through the
@@ -155,12 +147,12 @@ resource/region/period fields, and model providers add token detail through the
 ## Layout
 
 ```text
-cmd/focus-exporter/          CLI
-pkg/focus/                   canonical FOCUS 1.2 Record (generated) + mapper
-pkg/model/                   UsageRecord (domain-agnostic)
+cmd/focus-exporter/          CLI (flags, provider registry, window guard, sinks)
+pkg/focus/                   canonical FOCUS 1.2 Record (generated) + mapper + validator
+pkg/model/                   UsageRecord (domain-agnostic) + typed FOCUS enums
 pkg/sink/                    Sink interface + JSON/CSV writers
-pkg/integrations/            Source interface + HTTPGet + Registry
-pkg/integrations/planetscale PlanetScale adapter
+pkg/integrations/            Source interface + HTTPGet + Registry + Provider descriptor
+pkg/integrations/<name>/     one adapter per provider
 internal/gen/                FOCUS-type generator (go:generate)
 ```
 
@@ -170,13 +162,13 @@ internal/gen/                FOCUS-type generator (go:generate)
 go generate ./...
 go build ./...
 go vet ./...
-go test ./...
+go test -race ./...
 ```
 
 ## Roadmap
 
 - More provider adapters across AI, data, database, observability, and comms
-  categories (Anthropic and OpenAI already shipped).
+  categories.
 - A stable synthetic record id (`x_LineItemId`) so downstream ingestion can
   dedup without relying on field values, which FOCUS does not guarantee to be
   unique.
