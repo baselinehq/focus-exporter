@@ -26,6 +26,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Modal adapter: one FOCUS 1.2 record per (day, object) from the Modal workspace
+  billing report. Modal has no REST billing endpoint, so this adapter talks
+  **gRPC** (`api.modal.com:443`, `WorkspaceBillingReport`, server-streaming)
+  rather than the shared `HTTPGet` seam. Per-resource CPU/memory/GPU cost rides
+  in `SkuPriceDetails`; environment and tags as `x_` extensions. Captures
+  self-hosted model inference (Moondream, Qwen-VL) running on Modal. Registered
+  as `--provider modal` (env `MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET` /
+  `MODAL_WORKSPACE_ID`). Adds `google.golang.org/grpc` and
+  `google.golang.org/protobuf` as the first non-`x/*` runtime dependencies.
 - Confluent Cloud adapter: one FOCUS 1.2 record per `/billing/v1/costs` line item
   (real billed `amount` in dollars, `resource` id/name, `product`/`line_type`
   SKU), invoice-cost shape. Basic auth; `metadata.next` pagination; promo/negative

@@ -22,6 +22,7 @@ as `x_`-prefixed extension columns, which conformant consumers ignore.
 | <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openai.svg" height="18" align="center"> **OpenAI** | AI / LLM | day x model x token bucket + line-item cost | [openai.md](docs/providers/openai.md) |
 | <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/confluent.svg" height="18" align="center"> **Confluent Cloud** | Streaming (Kafka) | billing line item (product x resource) | [confluent.md](docs/providers/confluent.md) |
 | <img src="https://cdn.simpleicons.org/openrouter/888888" height="18" align="center"> **OpenRouter** | AI gateway | day x model x upstream provider (credit spend) | [openrouter.md](docs/providers/openrouter.md) |
+| <img src="https://cdn.simpleicons.org/modal/888888" height="18" align="center"> **Modal** | Serverless GPU / compute | day x object (per-resource CPU/mem/GPU cost) | [modal.md](docs/providers/modal.md) |
 
 One integration behind an LLM gateway (OpenRouter) captures spend across every
 model and upstream provider you route through it. Per-provider setup
